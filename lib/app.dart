@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'core/db/database.dart';
 import 'core/session/lote_activo_controller.dart';
+import 'data/repositories/articulos_repository.dart';
 import 'data/repositories/lotes_repository.dart';
 import 'features/lotes/lotes_list_screen.dart';
 
@@ -20,6 +21,10 @@ class App extends StatelessWidget {
         Provider<LotesRepository>(
           create: (context) =>
               LotesRepository(context.read<AppDatabase>().lotesDao),
+        ),
+        Provider<ArticulosRepository>(
+          create: (context) =>
+              ArticulosRepository(context.read<AppDatabase>().articulosDao),
         ),
         ChangeNotifierProvider<LoteActivoController>(
           create: (_) => LoteActivoController(),

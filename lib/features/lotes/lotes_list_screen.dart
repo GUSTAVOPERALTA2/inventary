@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/db/database.dart';
 import '../../core/session/lote_activo_controller.dart';
 import '../../data/repositories/lotes_repository.dart';
+import '../articulos/articulos_list_screen.dart';
 
 class LotesListScreen extends StatelessWidget {
   const LotesListScreen({super.key});
@@ -39,7 +40,18 @@ class LotesListScreen extends StatelessWidget {
                     ? const Icon(Icons.check_circle, color: Colors.green)
                     : null,
                 selected: seleccionado,
-                onTap: () => loteActivo.seleccionar(lote.id),
+                onTap: () {
+                  loteActivo.seleccionar(lote.id);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ArticulosListScreen(
+                        loteId: lote.id,
+                        nombreLote: lote.nombre,
+                      ),
+                    ),
+                  );
+                },
               );
             },
           );

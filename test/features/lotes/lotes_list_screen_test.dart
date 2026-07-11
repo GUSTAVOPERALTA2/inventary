@@ -1,6 +1,8 @@
 import 'package:app_inventario/core/db/database.dart';
 import 'package:app_inventario/core/session/lote_activo_controller.dart';
+import 'package:app_inventario/data/repositories/articulos_repository.dart';
 import 'package:app_inventario/data/repositories/lotes_repository.dart';
+import 'package:app_inventario/features/articulos/articulos_list_screen.dart';
 import 'package:app_inventario/features/lotes/lotes_list_screen.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +15,9 @@ Widget _buildTestApp(AppDatabase db) {
       Provider<AppDatabase>.value(value: db),
       Provider<LotesRepository>(
         create: (_) => LotesRepository(db.lotesDao),
+      ),
+      Provider<ArticulosRepository>(
+        create: (_) => ArticulosRepository(db.articulosDao),
       ),
       ChangeNotifierProvider<LoteActivoController>(
         create: (_) => LoteActivoController(),
@@ -59,6 +64,12 @@ void main() {
     expect(find.byIcon(Icons.check_circle), findsNothing);
 
     await tester.tap(find.text('Lote de prueba'));
+    await tester.pumpAndSettle();
+
+    // Seleccionar un lote navega a su pantalla de artículos; volvemos para
+    // verificar que haya quedado marcado como activo en la lista de lotes.
+    expect(find.byType(ArticulosListScreen), findsOneWidget);
+    await tester.pageBack();
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
