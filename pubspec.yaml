@@ -40,6 +40,9 @@ dependencies:
   drift_flutter: ^0.3.0
   path_provider: ^2.1.6
 
+  # Bloque 2: inyeccion de dependencias / UI reactiva
+  provider: ^6.1.5+1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
