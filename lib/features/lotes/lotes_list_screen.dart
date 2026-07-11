@@ -5,6 +5,7 @@ import '../../core/db/database.dart';
 import '../../core/session/lote_activo_controller.dart';
 import '../../data/repositories/lotes_repository.dart';
 import '../articulos/articulos_list_screen.dart';
+import '../campos_config/campos_config_screen.dart';
 
 class LotesListScreen extends StatelessWidget {
   const LotesListScreen({super.key});
@@ -15,7 +16,19 @@ class LotesListScreen extends StatelessWidget {
     final loteActivo = context.watch<LoteActivoController>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Lotes')),
+      appBar: AppBar(
+        title: const Text('Lotes'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune),
+            tooltip: 'Campos configurables',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CamposConfigScreen()),
+            ),
+          ),
+        ],
+      ),
       body: StreamBuilder<List<Lote>>(
         stream: repo.watchLotes(),
         builder: (context, snapshot) {

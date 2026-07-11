@@ -1,5 +1,6 @@
 import 'package:app_inventario/core/db/database.dart';
 import 'package:app_inventario/data/repositories/articulos_repository.dart';
+import 'package:app_inventario/data/repositories/campos_config_repository.dart';
 import 'package:app_inventario/features/articulos/articulos_list_screen.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,9 @@ Widget _buildTestApp(AppDatabase db, int loteId) {
       Provider<AppDatabase>.value(value: db),
       Provider<ArticulosRepository>(
         create: (_) => ArticulosRepository(db.articulosDao),
+      ),
+      Provider<CamposConfigRepository>(
+        create: (_) => CamposConfigRepository(db.customFieldDefinitionsDao),
       ),
     ],
     child: MaterialApp(

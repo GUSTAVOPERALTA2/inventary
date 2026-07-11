@@ -15,6 +15,15 @@ class CamposConfigRepository {
   Stream<List<CustomFieldDefinition>> watchAllDefinitions() =>
       _dao.watchAllDefinitions();
 
+  /// Snapshot puntual de las definiciones activas, para inyectar en el
+  /// formulario dinámico de captura de un artículo.
+  Future<List<CustomFieldDefinition>> getActiveDefinitionsOnce() =>
+      _dao.getActiveDefinitions();
+
+  /// Siguiente valor de `orden` para una definición nueva (se agrega al
+  /// final de la lista).
+  Future<int> siguienteOrden() => _dao.countDefinitions();
+
   Future<int> crearDefinicion({
     required String nombre,
     required CampoTipo tipo,

@@ -23,6 +23,18 @@ class CustomFieldDefinitionsDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(t) => OrderingTerm.asc(t.orden)]))
           .watch();
 
+  /// Snapshot puntual (sin watch) de las definiciones activas y su conteo
+  /// total, usados al abrir el formulario de artículo y al asignar el
+  /// siguiente `orden` para una definición nueva.
+  Future<List<CustomFieldDefinition>> getActiveDefinitions() =>
+      (select(customFieldDefinitions)
+            ..where((t) => t.activo.equals(true))
+            ..orderBy([(t) => OrderingTerm.asc(t.orden)]))
+          .get();
+
+  Future<int> countDefinitions() =>
+      select(customFieldDefinitions).get().then((rows) => rows.length);
+
   Future<int> insertDefinition(CustomFieldDefinitionsCompanion entry) =>
       into(customFieldDefinitions).insert(entry);
 
