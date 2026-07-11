@@ -22,5 +22,18 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          // Bloque 6: unidad de medida y precio unitario, requeridos por el
+          // formato oficial del acta de baja.
+          if (from < 2) {
+            await m.addColumn(articulos, articulos.unidadMedida);
+            await m.addColumn(articulos, articulos.precioUnitario);
+          }
+        },
+      );
 }

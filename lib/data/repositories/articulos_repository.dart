@@ -18,6 +18,8 @@ class ArticulosRepository {
     required String noSerie,
     required String descripcion,
     required double cantidad,
+    required String unidadMedida,
+    required double precioUnitario,
     String? fotoPath,
     Map<String, dynamic> customValues = const {},
   }) =>
@@ -26,6 +28,8 @@ class ArticulosRepository {
         noSerie: noSerie,
         descripcion: descripcion,
         cantidad: cantidad,
+        unidadMedida: Value(unidadMedida),
+        precioUnitario: Value(precioUnitario),
         fotoPath: Value(fotoPath),
         customValues: customValues,
       ));

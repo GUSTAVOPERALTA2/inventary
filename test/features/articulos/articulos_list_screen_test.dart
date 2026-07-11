@@ -2,6 +2,7 @@ import 'package:app_inventario/core/db/database.dart';
 import 'package:app_inventario/data/repositories/articulos_repository.dart';
 import 'package:app_inventario/data/repositories/campos_config_repository.dart';
 import 'package:app_inventario/features/articulos/articulos_list_screen.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -71,12 +72,20 @@ void main() {
       find.widgetWithText(TextFormField, 'Cantidad'),
       '3',
     );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Unidad de medida'),
+      'Pieza',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Precio unitario'),
+      '150',
+    );
 
     await tester.tap(find.text('Crear artículo'));
     await tester.pumpAndSettle();
 
     expect(find.text('SN-100'), findsOneWidget);
-    expect(find.textContaining('cant. 3'), findsOneWidget);
+    expect(find.textContaining('3 Pieza'), findsOneWidget);
 
     await _desmontar(tester);
   });
@@ -87,6 +96,8 @@ void main() {
       noSerie: 'SN-200',
       descripcion: 'Monitor',
       cantidad: 1,
+      unidadMedida: const Value('Pieza'),
+      precioUnitario: const Value(500),
       customValues: const {},
     ));
 

@@ -1,11 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/db/database.dart';
 import '../../core/utils/cantidad_parser.dart';
 import '../../data/repositories/articulos_repository.dart';
+import '../reportes/acta_baja_pdf_generator.dart';
 import 'articulo_form_screen.dart';
 
 class ArticulosListScreen extends StatelessWidget {
@@ -23,7 +25,16 @@ class ArticulosListScreen extends StatelessWidget {
     final repo = context.read<ArticulosRepository>();
 
     return Scaffold(
-      appBar: AppBar(title: Text(nombreLote)),
+      appBar: AppBar(
+        title: Text(nombreLote),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Generar reporte PDF',
+            onPressed: () => _generarReporte(context, repo),
+          ),
+        ],
+      ),
       body: StreamBuilder<List<Articulo>>(
         stream: repo.watchArticulosByLote(loteId),
         builder: (context, snapshot) {
@@ -49,7 +60,9 @@ class ArticulosListScreen extends StatelessWidget {
                     : CircleAvatar(backgroundImage: FileImage(File(fotoPath))),
                 title: Text(articulo.noSerie),
                 subtitle: Text(
-                  '${articulo.descripcion} · cant. ${formatCantidad(articulo.cantidad)}',
+                  '${articulo.descripcion} · '
+                  '${formatCantidad(articulo.cantidad)} ${articulo.unidadMedida} · '
+                  '\$${formatCantidad(articulo.precioUnitario)} c/u',
                 ),
                 onTap: () => _abrirFormulario(context, articulo: articulo),
                 trailing: IconButton(
@@ -76,6 +89,82 @@ class ArticulosListScreen extends StatelessWidget {
       MaterialPageRoute(
         builder: (_) => ArticuloFormScreen(loteId: loteId, articulo: articulo),
       ),
+    );
+  }
+
+  Future<void> _generarReporte(
+    BuildContext context,
+    ArticulosRepository repo,
+  ) async {
+    final articulos = await repo.watchArticulosByLote(loteId).first;
+    if (articulos.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Este lote todavía no tiene artículos.'),
+          ),
+        );
+      }
+      return;
+    }
+    if (!context.mounted) return;
+
+    final encabezado = await _pedirDatosActa(context);
+    if (encabezado == null) return;
+
+    final pdfBytes = await generarActaBajaPdf(
+      articulos: articulos,
+      encabezado: encabezado,
+    );
+
+    await Printing.layoutPdf(onLayout: (_) async => pdfBytes);
+  }
+
+  Future<EncabezadoActa?> _pedirDatosActa(BuildContext context) async {
+    final areaController = TextEditingController();
+    final departamentoController = TextEditingController();
+
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Datos del acta'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: areaController,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Área'),
+            ),
+            TextField(
+              controller: departamentoController,
+              decoration: const InputDecoration(labelText: 'Departamento'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Generar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmado != true) return null;
+
+    final ahora = DateTime.now();
+    return EncabezadoActa(
+      nombreLote: nombreLote,
+      area: areaController.text.trim(),
+      departamento: departamentoController.text.trim(),
+      fecha: ahora,
+      hora: '${ahora.hour.toString().padLeft(2, '0')}:'
+          '${ahora.minute.toString().padLeft(2, '0')}',
     );
   }
 

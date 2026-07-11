@@ -3,6 +3,7 @@ import 'package:app_inventario/data/models/campo_tipo.dart';
 import 'package:app_inventario/data/repositories/articulos_repository.dart';
 import 'package:app_inventario/data/repositories/campos_config_repository.dart';
 import 'package:app_inventario/features/articulos/articulo_form_screen.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,6 +35,16 @@ Future<void> _desmontar(WidgetTester tester) async {
   await tester.pump(Duration.zero);
 }
 
+/// El formulario ya no cabe en el tamaño de pantalla de prueba por defecto;
+/// sin esto, el ListView no llega a construir los widgets fuera de la
+/// vista (mas alla del cache extent) y los finders no los encuentran.
+void _agrandarViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1080, 3000);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+}
+
 void main() {
   late AppDatabase db;
   late int loteId;
@@ -48,6 +59,7 @@ void main() {
   testWidgets(
       'un campo configurable activo aparece en el formulario y se guarda en custom_values',
       (tester) async {
+    _agrandarViewport(tester);
     final campoId = await db.customFieldDefinitionsDao.insertDefinition(
       CustomFieldDefinitionsCompanion.insert(
         nombre: 'Color',
@@ -74,6 +86,14 @@ void main() {
       '1',
     );
     await tester.enterText(
+      find.widgetWithText(TextFormField, 'Unidad de medida'),
+      'Pieza',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Precio unitario'),
+      '10',
+    );
+    await tester.enterText(
       find.widgetWithText(TextFormField, 'Color'),
       'Rojo',
     );
@@ -90,6 +110,7 @@ void main() {
   testWidgets(
       'un campo desactivado no aparece en el formulario pero su valor histórico sobrevive a una edición',
       (tester) async {
+    _agrandarViewport(tester);
     final campoId = await db.customFieldDefinitionsDao.insertDefinition(
       CustomFieldDefinitionsCompanion.insert(
         nombre: 'Color',
@@ -103,6 +124,8 @@ void main() {
         noSerie: 'SN-600',
         descripcion: 'Mesa',
         cantidad: 1,
+        unidadMedida: const Value('Pieza'),
+        precioUnitario: const Value(200),
         customValues: {campoId.toString(): 'Azul'},
       ),
     );

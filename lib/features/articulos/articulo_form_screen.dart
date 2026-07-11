@@ -42,6 +42,8 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
   late final TextEditingController _noSerieController;
   late final TextEditingController _descripcionController;
   late final TextEditingController _cantidadController;
+  late final TextEditingController _unidadMedidaController;
+  late final TextEditingController _precioUnitarioController;
   bool _esEntero = true;
   String? _fotoPath;
 
@@ -67,6 +69,13 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
     }
     _cantidadController = TextEditingController(
       text: articulo == null ? '' : formatCantidad(articulo.cantidad),
+    );
+    _unidadMedidaController =
+        TextEditingController(text: articulo?.unidadMedida ?? '');
+    _precioUnitarioController = TextEditingController(
+      text: articulo == null || articulo.precioUnitario == 0
+          ? ''
+          : formatCantidad(articulo.precioUnitario),
     );
     _fotoPath = articulo?.fotoPath;
     _cargarDefiniciones();
@@ -133,6 +142,8 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
     _noSerieController.dispose();
     _descripcionController.dispose();
     _cantidadController.dispose();
+    _unidadMedidaController.dispose();
+    _precioUnitarioController.dispose();
     for (final controlador in _controladoresTexto.values) {
       controlador.dispose();
     }
@@ -207,6 +218,31 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
                       final cantidad =
                           parseCantidad(value ?? '', esEntero: _esEntero);
                       return cantidad == null ? 'Cantidad inválida' : null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _unidadMedidaController,
+                    decoration:
+                        const InputDecoration(labelText: 'Unidad de medida'),
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                            ? 'La unidad de medida es obligatoria'
+                            : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _precioUnitarioController,
+                    decoration:
+                        const InputDecoration(labelText: 'Precio unitario'),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                    ],
+                    validator: (value) {
+                      final precio = parseCantidad(value ?? '', esEntero: false);
+                      return precio == null ? 'Precio inválido' : null;
                     },
                   ),
                   const SizedBox(height: 24),
@@ -332,6 +368,8 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
 
     final cantidad =
         parseCantidad(_cantidadController.text, esEntero: _esEntero)!;
+    final precioUnitario =
+        parseCantidad(_precioUnitarioController.text, esEntero: false)!;
     final repo = context.read<ArticulosRepository>();
 
     // Se parte de los valores ya guardados (incluidos los de campos que
@@ -366,6 +404,8 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
         noSerie: _noSerieController.text.trim(),
         descripcion: _descripcionController.text.trim(),
         cantidad: cantidad,
+        unidadMedida: _unidadMedidaController.text.trim(),
+        precioUnitario: precioUnitario,
         fotoPath: Value(_fotoPath),
         customValues: customValues,
       );
@@ -376,6 +416,8 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
         noSerie: _noSerieController.text.trim(),
         descripcion: _descripcionController.text.trim(),
         cantidad: cantidad,
+        unidadMedida: _unidadMedidaController.text.trim(),
+        precioUnitario: precioUnitario,
         fotoPath: _fotoPath,
         customValues: customValues,
       );

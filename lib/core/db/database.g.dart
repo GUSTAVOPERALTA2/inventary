@@ -329,6 +329,30 @@ class $ArticulosTable extends Articulos
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _unidadMedidaMeta = const VerificationMeta(
+    'unidadMedida',
+  );
+  @override
+  late final GeneratedColumn<String> unidadMedida = GeneratedColumn<String>(
+    'unidad_medida',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _precioUnitarioMeta = const VerificationMeta(
+    'precioUnitario',
+  );
+  @override
+  late final GeneratedColumn<double> precioUnitario = GeneratedColumn<double>(
+    'precio_unitario',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
   customValues = GeneratedColumn<String>(
@@ -358,6 +382,8 @@ class $ArticulosTable extends Articulos
     descripcion,
     cantidad,
     fotoPath,
+    unidadMedida,
+    precioUnitario,
     customValues,
     createdAt,
   ];
@@ -417,6 +443,24 @@ class $ArticulosTable extends Articulos
         fotoPath.isAcceptableOrUnknown(data['foto_path']!, _fotoPathMeta),
       );
     }
+    if (data.containsKey('unidad_medida')) {
+      context.handle(
+        _unidadMedidaMeta,
+        unidadMedida.isAcceptableOrUnknown(
+          data['unidad_medida']!,
+          _unidadMedidaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('precio_unitario')) {
+      context.handle(
+        _precioUnitarioMeta,
+        precioUnitario.isAcceptableOrUnknown(
+          data['precio_unitario']!,
+          _precioUnitarioMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -456,6 +500,14 @@ class $ArticulosTable extends Articulos
         DriftSqlType.string,
         data['${effectivePrefix}foto_path'],
       ),
+      unidadMedida: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unidad_medida'],
+      )!,
+      precioUnitario: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}precio_unitario'],
+      )!,
       customValues: $ArticulosTable.$convertercustomValues.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -485,6 +537,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
   final String descripcion;
   final double cantidad;
   final String? fotoPath;
+  final String unidadMedida;
+  final double precioUnitario;
   final Map<String, dynamic> customValues;
   final DateTime createdAt;
   const Articulo({
@@ -494,6 +548,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
     required this.descripcion,
     required this.cantidad,
     this.fotoPath,
+    required this.unidadMedida,
+    required this.precioUnitario,
     required this.customValues,
     required this.createdAt,
   });
@@ -508,6 +564,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
     if (!nullToAbsent || fotoPath != null) {
       map['foto_path'] = Variable<String>(fotoPath);
     }
+    map['unidad_medida'] = Variable<String>(unidadMedida);
+    map['precio_unitario'] = Variable<double>(precioUnitario);
     {
       map['custom_values'] = Variable<String>(
         $ArticulosTable.$convertercustomValues.toSql(customValues),
@@ -527,6 +585,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
       fotoPath: fotoPath == null && nullToAbsent
           ? const Value.absent()
           : Value(fotoPath),
+      unidadMedida: Value(unidadMedida),
+      precioUnitario: Value(precioUnitario),
       customValues: Value(customValues),
       createdAt: Value(createdAt),
     );
@@ -544,6 +604,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
       descripcion: serializer.fromJson<String>(json['descripcion']),
       cantidad: serializer.fromJson<double>(json['cantidad']),
       fotoPath: serializer.fromJson<String?>(json['fotoPath']),
+      unidadMedida: serializer.fromJson<String>(json['unidadMedida']),
+      precioUnitario: serializer.fromJson<double>(json['precioUnitario']),
       customValues: serializer.fromJson<Map<String, dynamic>>(
         json['customValues'],
       ),
@@ -560,6 +622,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
       'descripcion': serializer.toJson<String>(descripcion),
       'cantidad': serializer.toJson<double>(cantidad),
       'fotoPath': serializer.toJson<String?>(fotoPath),
+      'unidadMedida': serializer.toJson<String>(unidadMedida),
+      'precioUnitario': serializer.toJson<double>(precioUnitario),
       'customValues': serializer.toJson<Map<String, dynamic>>(customValues),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -572,6 +636,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
     String? descripcion,
     double? cantidad,
     Value<String?> fotoPath = const Value.absent(),
+    String? unidadMedida,
+    double? precioUnitario,
     Map<String, dynamic>? customValues,
     DateTime? createdAt,
   }) => Articulo(
@@ -581,6 +647,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
     descripcion: descripcion ?? this.descripcion,
     cantidad: cantidad ?? this.cantidad,
     fotoPath: fotoPath.present ? fotoPath.value : this.fotoPath,
+    unidadMedida: unidadMedida ?? this.unidadMedida,
+    precioUnitario: precioUnitario ?? this.precioUnitario,
     customValues: customValues ?? this.customValues,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -594,6 +662,12 @@ class Articulo extends DataClass implements Insertable<Articulo> {
           : this.descripcion,
       cantidad: data.cantidad.present ? data.cantidad.value : this.cantidad,
       fotoPath: data.fotoPath.present ? data.fotoPath.value : this.fotoPath,
+      unidadMedida: data.unidadMedida.present
+          ? data.unidadMedida.value
+          : this.unidadMedida,
+      precioUnitario: data.precioUnitario.present
+          ? data.precioUnitario.value
+          : this.precioUnitario,
       customValues: data.customValues.present
           ? data.customValues.value
           : this.customValues,
@@ -610,6 +684,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
           ..write('descripcion: $descripcion, ')
           ..write('cantidad: $cantidad, ')
           ..write('fotoPath: $fotoPath, ')
+          ..write('unidadMedida: $unidadMedida, ')
+          ..write('precioUnitario: $precioUnitario, ')
           ..write('customValues: $customValues, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -624,6 +700,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
     descripcion,
     cantidad,
     fotoPath,
+    unidadMedida,
+    precioUnitario,
     customValues,
     createdAt,
   );
@@ -637,6 +715,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
           other.descripcion == this.descripcion &&
           other.cantidad == this.cantidad &&
           other.fotoPath == this.fotoPath &&
+          other.unidadMedida == this.unidadMedida &&
+          other.precioUnitario == this.precioUnitario &&
           other.customValues == this.customValues &&
           other.createdAt == this.createdAt);
 }
@@ -648,6 +728,8 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
   final Value<String> descripcion;
   final Value<double> cantidad;
   final Value<String?> fotoPath;
+  final Value<String> unidadMedida;
+  final Value<double> precioUnitario;
   final Value<Map<String, dynamic>> customValues;
   final Value<DateTime> createdAt;
   const ArticulosCompanion({
@@ -657,6 +739,8 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
     this.descripcion = const Value.absent(),
     this.cantidad = const Value.absent(),
     this.fotoPath = const Value.absent(),
+    this.unidadMedida = const Value.absent(),
+    this.precioUnitario = const Value.absent(),
     this.customValues = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -667,6 +751,8 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
     required String descripcion,
     required double cantidad,
     this.fotoPath = const Value.absent(),
+    this.unidadMedida = const Value.absent(),
+    this.precioUnitario = const Value.absent(),
     required Map<String, dynamic> customValues,
     this.createdAt = const Value.absent(),
   }) : loteId = Value(loteId),
@@ -681,6 +767,8 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
     Expression<String>? descripcion,
     Expression<double>? cantidad,
     Expression<String>? fotoPath,
+    Expression<String>? unidadMedida,
+    Expression<double>? precioUnitario,
     Expression<String>? customValues,
     Expression<DateTime>? createdAt,
   }) {
@@ -691,6 +779,8 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
       if (descripcion != null) 'descripcion': descripcion,
       if (cantidad != null) 'cantidad': cantidad,
       if (fotoPath != null) 'foto_path': fotoPath,
+      if (unidadMedida != null) 'unidad_medida': unidadMedida,
+      if (precioUnitario != null) 'precio_unitario': precioUnitario,
       if (customValues != null) 'custom_values': customValues,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -703,6 +793,8 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
     Value<String>? descripcion,
     Value<double>? cantidad,
     Value<String?>? fotoPath,
+    Value<String>? unidadMedida,
+    Value<double>? precioUnitario,
     Value<Map<String, dynamic>>? customValues,
     Value<DateTime>? createdAt,
   }) {
@@ -713,6 +805,8 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
       descripcion: descripcion ?? this.descripcion,
       cantidad: cantidad ?? this.cantidad,
       fotoPath: fotoPath ?? this.fotoPath,
+      unidadMedida: unidadMedida ?? this.unidadMedida,
+      precioUnitario: precioUnitario ?? this.precioUnitario,
       customValues: customValues ?? this.customValues,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -739,6 +833,12 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
     if (fotoPath.present) {
       map['foto_path'] = Variable<String>(fotoPath.value);
     }
+    if (unidadMedida.present) {
+      map['unidad_medida'] = Variable<String>(unidadMedida.value);
+    }
+    if (precioUnitario.present) {
+      map['precio_unitario'] = Variable<double>(precioUnitario.value);
+    }
     if (customValues.present) {
       map['custom_values'] = Variable<String>(
         $ArticulosTable.$convertercustomValues.toSql(customValues.value),
@@ -759,6 +859,8 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
           ..write('descripcion: $descripcion, ')
           ..write('cantidad: $cantidad, ')
           ..write('fotoPath: $fotoPath, ')
+          ..write('unidadMedida: $unidadMedida, ')
+          ..write('precioUnitario: $precioUnitario, ')
           ..write('customValues: $customValues, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -1452,6 +1554,8 @@ typedef $$ArticulosTableCreateCompanionBuilder =
       required String descripcion,
       required double cantidad,
       Value<String?> fotoPath,
+      Value<String> unidadMedida,
+      Value<double> precioUnitario,
       required Map<String, dynamic> customValues,
       Value<DateTime> createdAt,
     });
@@ -1463,6 +1567,8 @@ typedef $$ArticulosTableUpdateCompanionBuilder =
       Value<String> descripcion,
       Value<double> cantidad,
       Value<String?> fotoPath,
+      Value<String> unidadMedida,
+      Value<double> precioUnitario,
       Value<Map<String, dynamic>> customValues,
       Value<DateTime> createdAt,
     });
@@ -1520,6 +1626,16 @@ class $$ArticulosTableFilterComposer
 
   ColumnFilters<String> get fotoPath => $composableBuilder(
     column: $table.fotoPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unidadMedida => $composableBuilder(
+    column: $table.unidadMedida,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get precioUnitario => $composableBuilder(
+    column: $table.precioUnitario,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1596,6 +1712,16 @@ class $$ArticulosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get unidadMedida => $composableBuilder(
+    column: $table.unidadMedida,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get precioUnitario => $composableBuilder(
+    column: $table.precioUnitario,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get customValues => $composableBuilder(
     column: $table.customValues,
     builder: (column) => ColumnOrderings(column),
@@ -1655,6 +1781,16 @@ class $$ArticulosTableAnnotationComposer
 
   GeneratedColumn<String> get fotoPath =>
       $composableBuilder(column: $table.fotoPath, builder: (column) => column);
+
+  GeneratedColumn<String> get unidadMedida => $composableBuilder(
+    column: $table.unidadMedida,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get precioUnitario => $composableBuilder(
+    column: $table.precioUnitario,
+    builder: (column) => column,
+  );
 
   GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
   get customValues => $composableBuilder(
@@ -1723,6 +1859,8 @@ class $$ArticulosTableTableManager
                 Value<String> descripcion = const Value.absent(),
                 Value<double> cantidad = const Value.absent(),
                 Value<String?> fotoPath = const Value.absent(),
+                Value<String> unidadMedida = const Value.absent(),
+                Value<double> precioUnitario = const Value.absent(),
                 Value<Map<String, dynamic>> customValues = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => ArticulosCompanion(
@@ -1732,6 +1870,8 @@ class $$ArticulosTableTableManager
                 descripcion: descripcion,
                 cantidad: cantidad,
                 fotoPath: fotoPath,
+                unidadMedida: unidadMedida,
+                precioUnitario: precioUnitario,
                 customValues: customValues,
                 createdAt: createdAt,
               ),
@@ -1743,6 +1883,8 @@ class $$ArticulosTableTableManager
                 required String descripcion,
                 required double cantidad,
                 Value<String?> fotoPath = const Value.absent(),
+                Value<String> unidadMedida = const Value.absent(),
+                Value<double> precioUnitario = const Value.absent(),
                 required Map<String, dynamic> customValues,
                 Value<DateTime> createdAt = const Value.absent(),
               }) => ArticulosCompanion.insert(
@@ -1752,6 +1894,8 @@ class $$ArticulosTableTableManager
                 descripcion: descripcion,
                 cantidad: cantidad,
                 fotoPath: fotoPath,
+                unidadMedida: unidadMedida,
+                precioUnitario: precioUnitario,
                 customValues: customValues,
                 createdAt: createdAt,
               ),

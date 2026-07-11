@@ -57,6 +57,16 @@ Future<void> _desmontar(WidgetTester tester) async {
   await tester.pump(Duration.zero);
 }
 
+/// El formulario ya no cabe en el tamaño de pantalla de prueba por defecto;
+/// sin esto, algunos botones quedan fuera del area visible y el tap no
+/// llega a golpearlos (o el ListView ni siquiera construye ese widget).
+void _agrandarViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1080, 3000);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+}
+
 void main() {
   late AppDatabase db;
   late int loteId;
@@ -83,6 +93,7 @@ void main() {
 
   testWidgets('tomar una foto la guarda en disco y se persiste en el articulo',
       (tester) async {
+    _agrandarViewport(tester);
     ImagePickerPlatform.instance = _FakeImagePickerPlatform(fotoOrigen.path);
 
     await tester.pumpWidget(
@@ -117,6 +128,14 @@ void main() {
       find.widgetWithText(TextFormField, 'Cantidad'),
       '1',
     );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Unidad de medida'),
+      'Pieza',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Precio unitario'),
+      '50',
+    );
     await tester.ensureVisible(find.text('Crear artículo'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Crear artículo'));
@@ -131,6 +150,7 @@ void main() {
 
   testWidgets('quitar la foto la limpia y se guarda como null al confirmar',
       (tester) async {
+    _agrandarViewport(tester);
     final fotoGuardada =
         File('${directorioFotos.path}/fotos_articulos/existente.jpg')
           ..createSync(recursive: true);
@@ -142,6 +162,8 @@ void main() {
         noSerie: 'SN-800',
         descripcion: 'Mesa',
         cantidad: 1,
+        unidadMedida: const Value('Pieza'),
+        precioUnitario: const Value(75),
         fotoPath: Value(fotoGuardada.path),
         customValues: const {},
       ),
@@ -165,6 +187,8 @@ void main() {
 
     expect(find.text('Tomar foto'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Guardar cambios'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar cambios'));
     await tester.pumpAndSettle();
 
