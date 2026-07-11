@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -40,7 +42,11 @@ class ArticulosListScreen extends StatelessWidget {
             itemCount: articulos.length,
             itemBuilder: (context, index) {
               final articulo = articulos[index];
+              final fotoPath = articulo.fotoPath;
               return ListTile(
+                leading: fotoPath == null
+                    ? const CircleAvatar(child: Icon(Icons.inventory_2_outlined))
+                    : CircleAvatar(backgroundImage: FileImage(File(fotoPath))),
                 title: Text(articulo.noSerie),
                 subtitle: Text(
                   '${articulo.descripcion} · cant. ${formatCantidad(articulo.cantidad)}',

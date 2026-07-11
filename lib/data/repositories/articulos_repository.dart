@@ -30,8 +30,11 @@ class ArticulosRepository {
         customValues: customValues,
       ));
 
+  // nullToAbsent=false: si fotoPath queda en null (se quitó la foto), debe
+  // escribirse como NULL en la fila, no quedar "ausente" (lo que dejaría el
+  // valor anterior intacto en la base de datos).
   Future<bool> actualizarArticulo(Articulo articulo) =>
-      _dao.updateArticulo(articulo.toCompanion(true));
+      _dao.updateArticulo(articulo.toCompanion(false));
 
   Future<int> eliminarArticulo(int id) => _dao.deleteArticulo(id);
 }

@@ -1,20 +1,37 @@
+import 'dart:io';
+
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/db/database.dart';
 import '../../core/utils/cantidad_parser.dart';
+import '../../core/utils/foto_storage.dart';
 import '../../data/models/campo_tipo.dart';
 import '../../data/repositories/articulos_repository.dart';
 import '../../data/repositories/campos_config_repository.dart';
+import '../camara_scanner/scanner_screen.dart';
 
 /// Formulario de alta/edicion de un articulo dentro de un lote.
 /// Si [articulo] viene null es un alta; si no, edita ese articulo.
 class ArticuloFormScreen extends StatefulWidget {
-  const ArticuloFormScreen({super.key, required this.loteId, this.articulo});
+  const ArticuloFormScreen({
+    super.key,
+    required this.loteId,
+    this.articulo,
+    this.obtenerDirectorioFotos,
+  });
 
   final int loteId;
   final Articulo? articulo;
+
+  /// Punto de inyección para tests: por defecto resuelve al directorio de
+  /// documentos real de la app (path_provider), pero en tests se puede pasar
+  /// un directorio temporal para no depender de un plugin nativo.
+  final Future<Directory> Function()? obtenerDirectorioFotos;
 
   @override
   State<ArticuloFormScreen> createState() => _ArticuloFormScreenState();
@@ -26,6 +43,7 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
   late final TextEditingController _descripcionController;
   late final TextEditingController _cantidadController;
   bool _esEntero = true;
+  String? _fotoPath;
 
   // Campos configurables (Bloque 4): se cargan una vez al abrir el
   // formulario e inyectan controles adicionales según su tipo.
@@ -50,7 +68,35 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
     _cantidadController = TextEditingController(
       text: articulo == null ? '' : formatCantidad(articulo.cantidad),
     );
+    _fotoPath = articulo?.fotoPath;
     _cargarDefiniciones();
+  }
+
+  Future<void> _tomarFoto() async {
+    final foto = await ImagePicker().pickImage(source: ImageSource.camera);
+    if (foto == null) return;
+
+    final resolverDirectorio =
+        widget.obtenerDirectorioFotos ?? getApplicationDocumentsDirectory;
+    final directorioBase = await resolverDirectorio();
+    final rutaFinal = await guardarFotoArticulo(
+      origenPath: foto.path,
+      directorioBase: directorioBase,
+    );
+
+    if (mounted) setState(() => _fotoPath = rutaFinal);
+  }
+
+  void _quitarFoto() => setState(() => _fotoPath = null);
+
+  Future<void> _escanear() async {
+    final resultado = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScannerScreen()),
+    );
+    if (resultado != null && resultado.isNotEmpty) {
+      _noSerieController.text = resultado;
+    }
   }
 
   Future<void> _cargarDefiniciones() async {
@@ -108,8 +154,14 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
                 children: [
                   TextFormField(
                     controller: _noSerieController,
-                    decoration:
-                        const InputDecoration(labelText: 'No. de serie'),
+                    decoration: InputDecoration(
+                      labelText: 'No. de serie',
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.qr_code_scanner),
+                        tooltip: 'Escanear código',
+                        onPressed: _escanear,
+                      ),
+                    ),
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                             ? 'El no. de serie es obligatorio'
@@ -157,6 +209,8 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
                       return cantidad == null ? 'Cantidad inválida' : null;
                     },
                   ),
+                  const SizedBox(height: 24),
+                  _seccionFoto(),
                   if (_definiciones.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     const Divider(),
@@ -175,6 +229,39 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _seccionFoto() {
+    if (_fotoPath == null) {
+      return OutlinedButton.icon(
+        onPressed: _tomarFoto,
+        icon: const Icon(Icons.camera_alt_outlined),
+        label: const Text('Tomar foto'),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.file(File(_fotoPath!), height: 160, fit: BoxFit.cover),
+        ),
+        Row(
+          children: [
+            TextButton.icon(
+              onPressed: _tomarFoto,
+              icon: const Icon(Icons.camera_alt_outlined),
+              label: const Text('Cambiar foto'),
+            ),
+            TextButton.icon(
+              onPressed: _quitarFoto,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Quitar'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -279,6 +366,7 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
         noSerie: _noSerieController.text.trim(),
         descripcion: _descripcionController.text.trim(),
         cantidad: cantidad,
+        fotoPath: Value(_fotoPath),
         customValues: customValues,
       );
       await repo.actualizarArticulo(actualizado);
@@ -288,6 +376,7 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
         noSerie: _noSerieController.text.trim(),
         descripcion: _descripcionController.text.trim(),
         cantidad: cantidad,
+        fotoPath: _fotoPath,
         customValues: customValues,
       );
     }

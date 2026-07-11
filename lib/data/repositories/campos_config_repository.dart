@@ -37,8 +37,10 @@ class CamposConfigRepository {
         orden: orden,
       ));
 
+  // nullToAbsent=false por la misma razón que en ArticulosRepository: si
+  // opciones queda en null debe escribirse como NULL, no quedar "ausente".
   Future<bool> actualizarDefinicion(CustomFieldDefinition definicion) =>
-      _dao.updateDefinition(definicion.toCompanion(true));
+      _dao.updateDefinition(definicion.toCompanion(false));
 
   /// Borrado lógico (activo = false): los reportes históricos que ya
   /// capturaron valores de este campo siguen íntegros.
