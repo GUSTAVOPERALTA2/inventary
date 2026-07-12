@@ -1,5 +1,4 @@
 import 'package:app_inventario/core/db/database.dart';
-import 'package:app_inventario/data/models/campo_tipo.dart';
 import 'package:app_inventario/data/repositories/articulos_repository.dart';
 import 'package:app_inventario/data/repositories/campos_config_repository.dart';
 import 'package:app_inventario/features/articulos/articulo_form_screen.dart';
@@ -35,9 +34,6 @@ Future<void> _desmontar(WidgetTester tester) async {
   await tester.pump(Duration.zero);
 }
 
-/// El formulario ya no cabe en el tamaño de pantalla de prueba por defecto;
-/// sin esto, el ListView no llega a construir los widgets fuera de la
-/// vista (mas alla del cache extent) y los finders no los encuentran.
 void _agrandarViewport(WidgetTester tester) {
   tester.view.physicalSize = const Size(1080, 3000);
   tester.view.devicePixelRatio = 1.0;
@@ -57,98 +53,115 @@ void main() {
   tearDown(() => db.close());
 
   testWidgets(
-      'un campo configurable activo aparece en el formulario y se guarda en custom_values',
+      'elegir "Otro" habilita un campo de texto y esa unidad se guarda tal cual',
       (tester) async {
     _agrandarViewport(tester);
-    final campoId = await db.customFieldDefinitionsDao.insertDefinition(
-      CustomFieldDefinitionsCompanion.insert(
-        nombre: 'Color',
-        tipo: CampoTipo.texto,
-        orden: 0,
-      ),
-    );
-
     await tester.pumpWidget(_buildTestApp(db, loteId: loteId));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(TextFormField, 'Color'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Especifica la unidad de medida'),
+        findsNothing);
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Otro').last);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextFormField, 'Especifica la unidad de medida'),
+        findsOneWidget);
 
     await tester.enterText(
       find.widgetWithText(TextFormField, 'No. de serie'),
-      'SN-500',
+      'SN-900',
     );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Descripción'),
-      'Silla',
+      'Rollo de cable',
     );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Cantidad'),
-      '1',
+      '2',
     );
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Pieza').last);
-    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Especifica la unidad de medida'),
+      'Rollo',
+    );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Precio unitario'),
-      '10',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Color'),
-      'Rojo',
+      '80',
     );
 
+    await tester.ensureVisible(find.text('Crear artículo'));
     await tester.tap(find.text('Crear artículo'));
     await tester.pumpAndSettle();
 
-    final articulos = await db.articulosDao.getArticuloById(1);
-    expect(articulos.customValues[campoId.toString()], 'Rojo');
+    final guardado = await db.articulosDao.getArticuloById(1);
+    expect(guardado.unidadMedida, 'Rollo');
 
     await _desmontar(tester);
   });
 
   testWidgets(
-      'un campo desactivado no aparece en el formulario pero su valor histórico sobrevive a una edición',
+      'editar un articulo con unidad preestablecida la muestra ya seleccionada',
       (tester) async {
     _agrandarViewport(tester);
-    final campoId = await db.customFieldDefinitionsDao.insertDefinition(
-      CustomFieldDefinitionsCompanion.insert(
-        nombre: 'Color',
-        tipo: CampoTipo.texto,
-        orden: 0,
-      ),
-    );
     final articuloId = await db.articulosDao.insertArticulo(
       ArticulosCompanion.insert(
         loteId: loteId,
-        noSerie: 'SN-600',
-        descripcion: 'Mesa',
-        cantidad: 1,
-        unidadMedida: const Value('Pieza'),
-        precioUnitario: const Value(200),
-        customValues: {campoId.toString(): 'Azul'},
+        noSerie: 'SN-910',
+        descripcion: 'Bulto de cemento',
+        cantidad: 5,
+        unidadMedida: const Value('Kg'),
+        precioUnitario: const Value(30),
+        customValues: const {},
       ),
     );
-    await db.customFieldDefinitionsDao.softDeleteDefinition(campoId);
-
     final articulo = await db.articulosDao.getArticuloById(articuloId);
+
     await tester.pumpWidget(
       _buildTestApp(db, loteId: loteId, articulo: articulo),
     );
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(TextFormField, 'Color'), findsNothing);
+    expect(find.text('Kg'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Especifica la unidad de medida'),
+        findsNothing);
 
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Descripción'),
-      'Mesa de madera',
+    await _desmontar(tester);
+  });
+
+  testWidgets(
+      'editar un articulo con unidad no preestablecida selecciona Otro y precarga el texto',
+      (tester) async {
+    _agrandarViewport(tester);
+    final articuloId = await db.articulosDao.insertArticulo(
+      ArticulosCompanion.insert(
+        loteId: loteId,
+        noSerie: 'SN-920',
+        descripcion: 'Cable',
+        cantidad: 1,
+        unidadMedida: const Value('Rollo'),
+        precioUnitario: const Value(80),
+        customValues: const {},
+      ),
     );
-    await tester.tap(find.text('Guardar cambios'));
+    final articulo = await db.articulosDao.getArticuloById(articuloId);
+
+    await tester.pumpWidget(
+      _buildTestApp(db, loteId: loteId, articulo: articulo),
+    );
     await tester.pumpAndSettle();
 
-    final actualizado = await db.articulosDao.getArticuloById(articuloId);
-    expect(actualizado.descripcion, 'Mesa de madera');
-    expect(actualizado.customValues[campoId.toString()], 'Azul');
+    expect(find.text('Otro'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextFormField, 'Especifica la unidad de medida'),
+      findsOneWidget,
+    );
+
+    final campoTexto = tester.widget<TextFormField>(
+      find.widgetWithText(TextFormField, 'Especifica la unidad de medida'),
+    );
+    expect(campoTexto.controller!.text, 'Rollo');
 
     await _desmontar(tester);
   });

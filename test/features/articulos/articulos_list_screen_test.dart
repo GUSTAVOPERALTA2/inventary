@@ -72,10 +72,10 @@ void main() {
       find.widgetWithText(TextFormField, 'Cantidad'),
       '3',
     );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Unidad de medida'),
-      'Pieza',
-    );
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pieza').last);
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Precio unitario'),
       '150',

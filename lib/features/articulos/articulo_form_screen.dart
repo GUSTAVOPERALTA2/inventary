@@ -15,6 +15,12 @@ import '../../data/repositories/articulos_repository.dart';
 import '../../data/repositories/campos_config_repository.dart';
 import '../camara_scanner/scanner_screen.dart';
 
+/// Opciones fijas del menu desplegable de "Unidad de medida". "Otro" no es
+/// una unidad en si: al elegirla se habilita un campo de texto para
+/// escribir la unidad real.
+const _unidadesPreestablecidas = ['Pieza', 'Kg', 'Ml', 'Lote'];
+const _opcionOtroUnidad = 'Otro';
+
 /// Formulario de alta/edicion de un articulo dentro de un lote.
 /// Si [articulo] viene null es un alta; si no, edita ese articulo.
 class ArticuloFormScreen extends StatefulWidget {
@@ -46,6 +52,10 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
   late final TextEditingController _precioUnitarioController;
   bool _esEntero = true;
   String? _fotoPath;
+  // Valor seleccionado en el menu de "Unidad de medida". Si es
+  // [_opcionOtroUnidad], la unidad real se toma de
+  // _unidadMedidaController en vez de esta variable.
+  String? _unidadMedidaSeleccionada;
 
   // Campos configurables (Bloque 4): se cargan una vez al abrir el
   // formulario e inyectan controles adicionales según su tipo.
@@ -70,8 +80,17 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
     _cantidadController = TextEditingController(
       text: articulo == null ? '' : formatCantidad(articulo.cantidad),
     );
-    _unidadMedidaController =
-        TextEditingController(text: articulo?.unidadMedida ?? '');
+    final unidadExistente = articulo?.unidadMedida ?? '';
+    if (unidadExistente.isEmpty) {
+      _unidadMedidaSeleccionada = null;
+      _unidadMedidaController = TextEditingController();
+    } else if (_unidadesPreestablecidas.contains(unidadExistente)) {
+      _unidadMedidaSeleccionada = unidadExistente;
+      _unidadMedidaController = TextEditingController();
+    } else {
+      _unidadMedidaSeleccionada = _opcionOtroUnidad;
+      _unidadMedidaController = TextEditingController(text: unidadExistente);
+    }
     _precioUnitarioController = TextEditingController(
       text: articulo == null || articulo.precioUnitario == 0
           ? ''
@@ -221,11 +240,31 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _unidadMedidaController,
+                  DropdownButtonFormField<String>(
+                    initialValue: _unidadMedidaSeleccionada,
                     decoration:
                         const InputDecoration(labelText: 'Unidad de medida'),
+                    items: [
+                      for (final unidad in _unidadesPreestablecidas)
+                        DropdownMenuItem(value: unidad, child: Text(unidad)),
+                      const DropdownMenuItem(
+                        value: _opcionOtroUnidad,
+                        child: Text(_opcionOtroUnidad),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() => _unidadMedidaSeleccionada = value);
+                    },
                   ),
+                  if (_unidadMedidaSeleccionada == _opcionOtroUnidad) ...[
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _unidadMedidaController,
+                      decoration: const InputDecoration(
+                        labelText: 'Especifica la unidad de medida',
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _precioUnitarioController,
@@ -366,6 +405,11 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
         parseCantidad(_cantidadController.text, esEntero: _esEntero)!;
     final precioUnitario =
         parseCantidad(_precioUnitarioController.text, esEntero: false)!;
+    final unidadMedida = switch (_unidadMedidaSeleccionada) {
+      null => '',
+      _opcionOtroUnidad => _unidadMedidaController.text.trim(),
+      final unidad => unidad,
+    };
     final repo = context.read<ArticulosRepository>();
 
     // Se parte de los valores ya guardados (incluidos los de campos que
@@ -400,7 +444,7 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
         noSerie: _noSerieController.text.trim(),
         descripcion: _descripcionController.text.trim(),
         cantidad: cantidad,
-        unidadMedida: _unidadMedidaController.text.trim(),
+        unidadMedida: unidadMedida,
         precioUnitario: precioUnitario,
         fotoPath: Value(_fotoPath),
         customValues: customValues,
@@ -412,7 +456,7 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
         noSerie: _noSerieController.text.trim(),
         descripcion: _descripcionController.text.trim(),
         cantidad: cantidad,
-        unidadMedida: _unidadMedidaController.text.trim(),
+        unidadMedida: unidadMedida,
         precioUnitario: precioUnitario,
         fotoPath: _fotoPath,
         customValues: customValues,
