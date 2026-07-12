@@ -96,66 +96,110 @@ pw.Widget _construirHoja(
   );
 }
 
+// Ancho de la columna izquierda (logo + leyenda) del encabezado, para que
+// ambas filas queden alineadas una debajo de la otra como en el formato
+// oficial (logo y leyenda a un costado, no centrados).
+const _anchoColumnaLogo = 130.0;
+
 pw.Widget _encabezado(EncabezadoActa encabezado, pw.MemoryImage logo) {
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.stretch,
     children: [
-      pw.Center(child: pw.Image(logo, height: 50)),
-      pw.SizedBox(height: 4),
-      pw.Center(
-        child: pw.Text(
-          'Tortuga Resorts',
-          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-        ),
-      ),
-      pw.Center(
-        child: pw.Text(
-          'San José SA de CV',
-          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-        ),
-      ),
-      pw.SizedBox(height: 10),
       pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.center,
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
-          pw.Text(
-            '- ACTA DE BAJA DE PRODUCTOS -',
-            style: pw.TextStyle(
-              fontSize: 26,
-              fontWeight: pw.FontWeight.bold,
-              decoration: pw.TextDecoration.underline,
+          pw.SizedBox(
+            width: _anchoColumnaLogo,
+            child: pw.Image(logo, height: 34),
+          ),
+          pw.SizedBox(width: 12),
+          pw.Expanded(
+            child: pw.Text(
+              '- ACTA DE BAJA DE PRODUCTOS -',
+              style: pw.TextStyle(
+                fontSize: 18,
+                fontWeight: pw.FontWeight.bold,
+                decoration: pw.TextDecoration.underline,
+              ),
             ),
           ),
         ],
       ),
-      pw.SizedBox(height: 10),
+      pw.SizedBox(height: 8),
       pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text('LOTE: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.Text(encabezado.nombreLote),
-          pw.SizedBox(width: 24),
-          pw.Text('FECHA: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.Text(encabezado.fechaFormateada),
-          pw.SizedBox(width: 24),
-          pw.Text('HORA: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.Text(encabezado.hora),
-        ],
-      ),
-      pw.SizedBox(height: 4),
-      pw.Row(
-        children: [
-          pw.Text('AREA: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.Text(encabezado.area),
-        ],
-      ),
-      pw.SizedBox(height: 4),
-      pw.Row(
-        children: [
-          pw.Text(
-            'DEPARTAMENTO: ',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          pw.SizedBox(
+            width: _anchoColumnaLogo,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Tortuga Resorts',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.Text(
+                  'San José SA de CV',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
-          pw.Text(encabezado.departamento),
+          pw.SizedBox(width: 12),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Row(
+                  children: [
+                    pw.Text(
+                      'LOTE: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.Text(encabezado.nombreLote),
+                    pw.SizedBox(width: 24),
+                    pw.Text(
+                      'FECHA: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.Text(encabezado.fechaFormateada),
+                    pw.SizedBox(width: 24),
+                    pw.Text(
+                      'HORA: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.Text(encabezado.hora),
+                  ],
+                ),
+                pw.SizedBox(height: 4),
+                pw.Row(
+                  children: [
+                    pw.Text(
+                      'AREA: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.Text(encabezado.area),
+                  ],
+                ),
+                pw.SizedBox(height: 4),
+                pw.Row(
+                  children: [
+                    pw.Text(
+                      'DEPARTAMENTO: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.Text(encabezado.departamento),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     ],
