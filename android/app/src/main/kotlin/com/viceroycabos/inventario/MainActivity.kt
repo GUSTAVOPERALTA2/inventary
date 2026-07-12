@@ -1,4 +1,4 @@
-package com.example.app_inventario
+package com.viceroycabos.inventario
 
 import io.flutter.embedding.android.FlutterActivity
 

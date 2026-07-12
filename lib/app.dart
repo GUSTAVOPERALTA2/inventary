@@ -37,7 +37,7 @@ class App extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'AppInventario',
+        title: 'Inventario Viceroy',
         theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
         home: const LotesListScreen(),
       ),

@@ -73,8 +73,15 @@ dev_dependencies:
   # Solo para simular ImagePicker en tests sin tocar el plugin nativo
   image_picker_platform_interface: ^2.11.1
 
+  # Generacion del icono de la app a partir de assets/icon/icon.png
+  flutter_launcher_icons: ^0.14.4
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icon/icon.png"
 
 # The following section is specific to Flutter packages.
 flutter:
