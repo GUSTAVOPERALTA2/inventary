@@ -52,6 +52,10 @@ dependencies:
   pdf: ^3.13.0
   printing: ^5.15.0
 
+  # Bloque 7: ZIP de respaldo (acta + fotos + resumen) y borrado opcional
+  archive: ^4.0.9
+  share_plus: ^13.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

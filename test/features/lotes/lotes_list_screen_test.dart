@@ -1,6 +1,7 @@
 import 'package:app_inventario/core/db/database.dart';
 import 'package:app_inventario/core/session/lote_activo_controller.dart';
 import 'package:app_inventario/data/repositories/articulos_repository.dart';
+import 'package:app_inventario/data/repositories/campos_config_repository.dart';
 import 'package:app_inventario/data/repositories/lotes_repository.dart';
 import 'package:app_inventario/features/articulos/articulos_list_screen.dart';
 import 'package:app_inventario/features/lotes/lotes_list_screen.dart';
@@ -18,6 +19,9 @@ Widget _buildTestApp(AppDatabase db) {
       ),
       Provider<ArticulosRepository>(
         create: (_) => ArticulosRepository(db.articulosDao),
+      ),
+      Provider<CamposConfigRepository>(
+        create: (_) => CamposConfigRepository(db.customFieldDefinitionsDao),
       ),
       ChangeNotifierProvider<LoteActivoController>(
         create: (_) => LoteActivoController(),
