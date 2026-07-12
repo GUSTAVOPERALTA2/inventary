@@ -96,6 +96,7 @@ flutter:
   # logo de la empresa para el encabezado del acta.
   assets:
     - assets/fonts/NotoSans.ttf
+    - assets/fonts/NotoSans-Bold.ttf
     - assets/images/viceroy_logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see

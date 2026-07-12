@@ -39,12 +39,17 @@ Future<Uint8List> generarActaBajaPdf({
   required EncabezadoActa encabezado,
 }) async {
   // Las fuentes base del paquete pdf no traen acentos ni "ñ"; se empaqueta
-  // Noto Sans (variable, sin un maestro bold aparte) para que el texto en
-  // español del acta se vea completo sin depender de internet. Se usa en
-  // vez de Arial (fuente propietaria, no distribuible dentro de la app)
-  // pero respetando los tamaños/negritas pedidos por el usuario.
+  // Noto Sans para que el texto en español del acta se vea completo sin
+  // depender de internet. Se usa en vez de Arial (fuente propietaria, no
+  // distribuible dentro de la app) pero respetando los tamaños/negritas
+  // pedidos por el usuario. La variante bold es una instancia estatica
+  // (peso 700) generada a partir del variable font: sin un maestro bold
+  // separado, FontWeight.bold no se veia realmente mas grueso.
   final fuente = pw.Font.ttf(
     await rootBundle.load('assets/fonts/NotoSans.ttf'),
+  );
+  final fuenteBold = pw.Font.ttf(
+    await rootBundle.load('assets/fonts/NotoSans-Bold.ttf'),
   );
   final logo = pw.MemoryImage(
     (await rootBundle.load('assets/images/viceroy_logo.png'))
@@ -52,7 +57,7 @@ Future<Uint8List> generarActaBajaPdf({
         .asUint8List(),
   );
   final documento = pw.Document(
-    theme: pw.ThemeData.withFont(base: fuente, bold: fuente),
+    theme: pw.ThemeData.withFont(base: fuente, bold: fuenteBold),
   );
   final paginas = paginarArticulosActa(articulos);
 
@@ -116,6 +121,7 @@ pw.Widget _encabezado(EncabezadoActa encabezado, pw.MemoryImage logo) {
           pw.Expanded(
             child: pw.Text(
               '- ACTA DE BAJA DE PRODUCTOS -',
+              textAlign: pw.TextAlign.center,
               style: pw.TextStyle(
                 fontSize: 18,
                 fontWeight: pw.FontWeight.bold,
