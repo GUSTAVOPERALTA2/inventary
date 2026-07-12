@@ -84,6 +84,14 @@ flutter_launcher_icons:
   ios: true
   remove_alpha_ios: true
   image_path: "assets/icon/icon.png"
+  # El icono plano (image_path) sirve para iOS y para el Android legado, pero
+  # en Android 8+ los launchers aplican su propia mascara (circulo, squircle,
+  # etc.) sobre un icono adaptativo: si el diseño ocupa casi todo el lienzo
+  # cuadrado, la mascara lo recorta. adaptive_icon_foreground es el mismo
+  # emblema pero recortado a su bbox real y reescalado para ocupar solo ~58%
+  # del lienzo, dentro de la "zona segura" que garantizan las mascaras.
+  adaptive_icon_background: "#79261B"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
 
 # The following section is specific to Flutter packages.
 flutter:
