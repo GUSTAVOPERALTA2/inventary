@@ -63,9 +63,14 @@ Future<Uint8List> generarActaBajaPdf({
 
   for (final pagina in paginas) {
     documento.addPage(
-      pw.Page(
+      // MultiPage (a diferencia de Page) deja que el contenido que no cabe
+      // en una sola hoja fisica continue automaticamente en otra en vez de
+      // recortarse: una descripcion larga ya no empuja la seccion de firmas
+      // fuera del PDF, sino que la manda a una hoja adicional.
+      pw.MultiPage(
         pageFormat: PdfPageFormat.letter,
         margin: const pw.EdgeInsets.all(24),
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         build: (context) => _construirHoja(pagina, encabezado, logo),
       ),
     );
@@ -74,31 +79,28 @@ Future<Uint8List> generarActaBajaPdf({
   return documento.save();
 }
 
-pw.Widget _construirHoja(
+List<pw.Widget> _construirHoja(
   List<Articulo> pagina,
   EncabezadoActa encabezado,
   pw.MemoryImage logo,
 ) {
-  return pw.Column(
-    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-    children: [
-      _encabezado(encabezado, logo),
-      pw.SizedBox(height: 12),
-      _tablaArticulos(pagina),
-      pw.SizedBox(height: 4),
-      pw.Align(
-        alignment: pw.Alignment.centerRight,
-        child: pw.Text(
-          'TOTAL A DAR DE BAJA: ${formatMoneda(totalHojaActa(pagina))}',
-          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
-        ),
+  return [
+    _encabezado(encabezado, logo),
+    pw.SizedBox(height: 12),
+    _tablaArticulos(pagina),
+    pw.SizedBox(height: 4),
+    pw.Align(
+      alignment: pw.Alignment.centerRight,
+      child: pw.Text(
+        'TOTAL A DAR DE BAJA: ${formatMoneda(totalHojaActa(pagina))}',
+        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
       ),
-      pw.SizedBox(height: 12),
-      _filaFotos(pagina),
-      pw.SizedBox(height: 16),
-      _seccionFirmas(),
-    ],
-  );
+    ),
+    pw.SizedBox(height: 12),
+    _filaFotos(pagina),
+    pw.SizedBox(height: 16),
+    _seccionFirmas(),
+  ];
 }
 
 // Ancho de la columna izquierda (logo + leyenda) del encabezado, para que

@@ -5,12 +5,12 @@ import 'package:app_inventario/core/db/database.dart';
 import 'package:app_inventario/features/reportes/acta_baja_pdf_generator.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Articulo _articulo({required int id, String? fotoPath}) {
+Articulo _articulo({required int id, String? fotoPath, String? descripcion}) {
   return Articulo(
     id: id,
     loteId: 1,
     noSerie: 'SN-$id',
-    descripcion: 'Articulo $id',
+    descripcion: descripcion ?? 'Articulo $id',
     cantidad: 2,
     unidadMedida: 'Pieza',
     precioUnitario: 100,
@@ -18,6 +18,13 @@ Articulo _articulo({required int id, String? fotoPath}) {
     customValues: const {},
     createdAt: DateTime(2026, 1, 1),
   );
+}
+
+/// Cuenta paginas fisicas contando los objetos "/Type /Page" (sin contar
+/// "/Type /Pages", el nodo raiz del arbol de paginas).
+int _contarPaginas(List<int> bytes) {
+  final texto = String.fromCharCodes(bytes);
+  return RegExp(r'/Type\s*/Page(?!s)').allMatches(texto).length;
 }
 
 void main() {
@@ -73,6 +80,28 @@ void main() {
     expect(bytes, isNotEmpty);
 
     await tempDir.delete(recursive: true);
+  });
+
+  test(
+      'una descripcion muy larga no pierde la seccion de firmas: '
+      'genera una pagina extra en vez de recortar', () async {
+    final descripcionLarga = List.generate(80, (_) => 'palabra').join(' ');
+    final articulos = List.generate(
+      5,
+      (i) => _articulo(id: i + 1, descripcion: descripcionLarga),
+    );
+
+    final normal = await generarActaBajaPdf(
+      articulos: List.generate(5, (i) => _articulo(id: i + 1)),
+      encabezado: encabezado,
+    );
+    final conDescripcionLarga = await generarActaBajaPdf(
+      articulos: articulos,
+      encabezado: encabezado,
+    );
+
+    expect(_contarPaginas(normal), 1);
+    expect(_contarPaginas(conDescripcionLarga), greaterThan(1));
   });
 
   test('no truena cuando no hay articulos (ninguna hoja)', () async {
