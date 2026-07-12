@@ -40,9 +40,16 @@ Future<Uint8List> generarActaBajaPdf({
 }) async {
   // Las fuentes base del paquete pdf no traen acentos ni "ñ"; se empaqueta
   // Noto Sans (variable, sin un maestro bold aparte) para que el texto en
-  // español del acta se vea completo sin depender de internet.
+  // español del acta se vea completo sin depender de internet. Se usa en
+  // vez de Arial (fuente propietaria, no distribuible dentro de la app)
+  // pero respetando los tamaños/negritas pedidos por el usuario.
   final fuente = pw.Font.ttf(
     await rootBundle.load('assets/fonts/NotoSans.ttf'),
+  );
+  final logo = pw.MemoryImage(
+    (await rootBundle.load('assets/images/viceroy_logo.png'))
+        .buffer
+        .asUint8List(),
   );
   final documento = pw.Document(
     theme: pw.ThemeData.withFont(base: fuente, bold: fuente),
@@ -54,7 +61,7 @@ Future<Uint8List> generarActaBajaPdf({
       pw.Page(
         pageFormat: PdfPageFormat.letter,
         margin: const pw.EdgeInsets.all(24),
-        build: (context) => _construirHoja(pagina, encabezado),
+        build: (context) => _construirHoja(pagina, encabezado, logo),
       ),
     );
   }
@@ -62,11 +69,15 @@ Future<Uint8List> generarActaBajaPdf({
   return documento.save();
 }
 
-pw.Widget _construirHoja(List<Articulo> pagina, EncabezadoActa encabezado) {
+pw.Widget _construirHoja(
+  List<Articulo> pagina,
+  EncabezadoActa encabezado,
+  pw.MemoryImage logo,
+) {
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.stretch,
     children: [
-      _encabezado(encabezado),
+      _encabezado(encabezado, logo),
       pw.SizedBox(height: 12),
       _tablaArticulos(pagina),
       pw.SizedBox(height: 4),
@@ -85,17 +96,32 @@ pw.Widget _construirHoja(List<Articulo> pagina, EncabezadoActa encabezado) {
   );
 }
 
-pw.Widget _encabezado(EncabezadoActa encabezado) {
+pw.Widget _encabezado(EncabezadoActa encabezado, pw.MemoryImage logo) {
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.stretch,
     children: [
+      pw.Center(child: pw.Image(logo, height: 50)),
+      pw.SizedBox(height: 4),
+      pw.Center(
+        child: pw.Text(
+          'Tortuga Resorts',
+          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+        ),
+      ),
+      pw.Center(
+        child: pw.Text(
+          'San José SA de CV',
+          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+        ),
+      ),
+      pw.SizedBox(height: 10),
       pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.center,
         children: [
           pw.Text(
             '- ACTA DE BAJA DE PRODUCTOS -',
             style: pw.TextStyle(
-              fontSize: 16,
+              fontSize: 26,
               fontWeight: pw.FontWeight.bold,
               decoration: pw.TextDecoration.underline,
             ),

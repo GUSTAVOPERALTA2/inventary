@@ -92,9 +92,11 @@ flutter:
   uses-material-design: true
 
   # Bloque 6: fuente empaquetada para el PDF del acta de baja (las fuentes
-  # base del paquete pdf no soportan acentos/ñ, necesarios en español).
+  # base del paquete pdf no soportan acentos/ñ, necesarios en español) y
+  # logo de la empresa para el encabezado del acta.
   assets:
     - assets/fonts/NotoSans.ttf
+    - assets/images/viceroy_logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
