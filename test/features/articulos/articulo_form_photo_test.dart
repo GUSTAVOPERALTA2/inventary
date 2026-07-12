@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:app_inventario/core/db/database.dart';
 import 'package:app_inventario/data/repositories/articulos_repository.dart';
-import 'package:app_inventario/data/repositories/campos_config_repository.dart';
 import 'package:app_inventario/features/articulos/articulo_form_screen.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
@@ -37,9 +36,6 @@ Widget _buildTestApp(
       Provider<AppDatabase>.value(value: db),
       Provider<ArticulosRepository>(
         create: (_) => ArticulosRepository(db.articulosDao),
-      ),
-      Provider<CamposConfigRepository>(
-        create: (_) => CamposConfigRepository(db.customFieldDefinitionsDao),
       ),
     ],
     child: MaterialApp(
