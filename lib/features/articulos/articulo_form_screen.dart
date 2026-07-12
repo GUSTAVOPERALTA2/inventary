@@ -225,10 +225,6 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
                     controller: _unidadMedidaController,
                     decoration:
                         const InputDecoration(labelText: 'Unidad de medida'),
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                            ? 'La unidad de medida es obligatoria'
-                            : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(

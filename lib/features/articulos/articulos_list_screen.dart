@@ -86,7 +86,8 @@ class ArticulosListScreen extends StatelessWidget {
                 title: Text(articulo.noSerie),
                 subtitle: Text(
                   '${articulo.descripcion} · '
-                  '${formatCantidad(articulo.cantidad)} ${articulo.unidadMedida} · '
+                  '${formatCantidad(articulo.cantidad)}'
+                  '${articulo.unidadMedida.isEmpty ? '' : ' ${articulo.unidadMedida}'} · '
                   '\$${formatCantidad(articulo.precioUnitario)} c/u',
                 ),
                 onTap: () => _abrirFormulario(context, articulo: articulo),
