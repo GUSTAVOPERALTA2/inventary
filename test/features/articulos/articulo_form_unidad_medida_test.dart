@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:app_inventario/core/db/database.dart';
 import 'package:app_inventario/data/repositories/articulos_repository.dart';
 import 'package:app_inventario/features/articulos/articulo_form_screen.dart';
@@ -5,12 +7,29 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:provider/provider.dart';
+
+/// Doble de prueba para no depender del plugin nativo de la cámara: entrega
+/// siempre el mismo archivo (o null, simulando que el usuario canceló).
+class _FakeImagePickerPlatform extends ImagePickerPlatform {
+  _FakeImagePickerPlatform(this._rutaAEntregar);
+  final String? _rutaAEntregar;
+
+  @override
+  Future<XFile?> getImageFromSource({
+    required ImageSource source,
+    ImagePickerOptions options = const ImagePickerOptions(),
+  }) async {
+    return _rutaAEntregar == null ? null : XFile(_rutaAEntregar);
+  }
+}
 
 Widget _buildTestApp(
   AppDatabase db, {
   required int loteId,
   Articulo? articulo,
+  Directory? directorioFotos,
 }) {
   return MultiProvider(
     providers: [
@@ -20,7 +39,12 @@ Widget _buildTestApp(
       ),
     ],
     child: MaterialApp(
-      home: ArticuloFormScreen(loteId: loteId, articulo: articulo),
+      home: ArticuloFormScreen(
+        loteId: loteId,
+        articulo: articulo,
+        obtenerDirectorioFotos:
+            directorioFotos == null ? null : () async => directorioFotos,
+      ),
     ),
   );
 }
@@ -40,19 +64,34 @@ void _agrandarViewport(WidgetTester tester) {
 void main() {
   late AppDatabase db;
   late int loteId;
+  late Directory tempDir;
 
   setUp(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     loteId = await db.lotesDao
         .insertLote(LotesCompanion.insert(nombre: 'Lote de prueba'));
+    tempDir = await Directory.systemTemp.createTemp('unidad_medida_test');
   });
-  tearDown(() => db.close());
+  tearDown(() async {
+    await db.close();
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
+  });
 
   testWidgets(
       'elegir "Otro" habilita un campo de texto y esa unidad se guarda tal cual',
       (tester) async {
     _agrandarViewport(tester);
-    await tester.pumpWidget(_buildTestApp(db, loteId: loteId));
+    final directorioFotos = Directory('${tempDir.path}/documents')
+      ..createSync();
+    final fotoOrigen = File('${tempDir.path}/camera_capture.jpg')
+      ..writeAsBytesSync([9, 9, 9]);
+    ImagePickerPlatform.instance = _FakeImagePickerPlatform(fotoOrigen.path);
+
+    await tester.pumpWidget(
+      _buildTestApp(db, loteId: loteId, directorioFotos: directorioFotos),
+    );
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(TextFormField, 'Especifica la unidad de medida'),
@@ -87,12 +126,21 @@ void main() {
       '80',
     );
 
-    await tester.ensureVisible(find.text('Crear artículo'));
+    // El picker (fake) y la copia a disco son E/S real; sin runAsync,
+    // testWidgets corre dentro de una zona FakeAsync donde ese trabajo
+    // nunca llega a completarse.
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Tomar foto'));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('Crear artículo'));
     await tester.pumpAndSettle();
 
     final guardado = await db.articulosDao.getArticuloById(1);
     expect(guardado.unidadMedida, 'Rollo');
+    expect(guardado.fotoPath, isNotNull);
 
     await _desmontar(tester);
   });

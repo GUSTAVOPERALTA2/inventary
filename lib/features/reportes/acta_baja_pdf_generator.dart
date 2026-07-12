@@ -17,6 +17,7 @@ class EncabezadoActa {
     required this.departamento,
     required this.fecha,
     required this.hora,
+    this.imagenesSeparadas = false,
   });
 
   final String nombreLote;
@@ -24,6 +25,11 @@ class EncabezadoActa {
   final String departamento;
   final DateTime fecha;
   final String hora;
+
+  /// Si es true, las fotografias no se muestran junto a la tabla de cada
+  /// hoja: cada hoja de datos va seguida de su propia hoja dedicada con las
+  /// fotos a mayor tamaño (decision con el usuario).
+  final bool imagenesSeparadas;
 
   String get fechaFormateada =>
       '${fecha.day.toString().padLeft(2, '0')}-'
@@ -71,19 +77,36 @@ Future<Uint8List> generarActaBajaPdf({
         pageFormat: PdfPageFormat.letter,
         margin: const pw.EdgeInsets.all(24),
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-        build: (context) => _construirHoja(pagina, encabezado, logo),
+        build: (context) => _construirHojaDatos(
+          pagina,
+          encabezado,
+          logo,
+          incluirFotosInline: !encabezado.imagenesSeparadas,
+        ),
       ),
     );
+
+    if (encabezado.imagenesSeparadas) {
+      documento.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.letter,
+          margin: const pw.EdgeInsets.all(24),
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          build: (context) => _construirHojaFotos(pagina, encabezado, logo),
+        ),
+      );
+    }
   }
 
   return documento.save();
 }
 
-List<pw.Widget> _construirHoja(
+List<pw.Widget> _construirHojaDatos(
   List<Articulo> pagina,
   EncabezadoActa encabezado,
-  pw.MemoryImage logo,
-) {
+  pw.MemoryImage logo, {
+  required bool incluirFotosInline,
+}) {
   return [
     _encabezado(encabezado, logo),
     pw.SizedBox(height: 12),
@@ -97,9 +120,26 @@ List<pw.Widget> _construirHoja(
       ),
     ),
     pw.SizedBox(height: 12),
-    _filaFotos(pagina),
-    pw.SizedBox(height: 16),
+    if (incluirFotosInline) ...[
+      _filaFotos(pagina),
+      pw.SizedBox(height: 16),
+    ],
     _seccionFirmas(),
+  ];
+}
+
+/// Hoja dedicada a las fotografias de una hoja de datos, a mayor tamaño,
+/// cuando el usuario elige "Imagenes separadas en el reporte". No lleva
+/// firmas: es un anexo visual de la hoja de datos que la precede.
+List<pw.Widget> _construirHojaFotos(
+  List<Articulo> pagina,
+  EncabezadoActa encabezado,
+  pw.MemoryImage logo,
+) {
+  return [
+    _encabezado(encabezado, logo),
+    pw.SizedBox(height: 20),
+    _cuadriculaFotosGrandes(pagina),
   ];
 }
 
@@ -297,34 +337,101 @@ pw.TableRow _filaArticulo(Articulo? articulo, int numeroRef) {
 
 pw.Widget _filaFotos(List<Articulo> pagina) {
   return pw.Row(
-    children: List.generate(articulosPorHojaActa, (i) {
-      final articulo = i < pagina.length ? pagina[i] : null;
-      final fotoPath = articulo?.fotoPath;
-      final tieneFoto = fotoPath != null && File(fotoPath).existsSync();
-      return pw.Expanded(
-        child: pw.Container(
-          height: 130,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 2),
-          decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.5)),
-          child: pw.Column(
-            children: [
-              pw.Text('${i + 1}', style: const pw.TextStyle(fontSize: 9)),
-              pw.Expanded(
-                child: tieneFoto
-                    ? pw.Padding(
-                        padding: const pw.EdgeInsets.all(2),
-                        child: pw.Image(
-                          pw.MemoryImage(File(fotoPath).readAsBytesSync()),
-                          fit: pw.BoxFit.contain,
-                        ),
-                      )
-                    : pw.Container(),
-              ),
-            ],
+    children: List.generate(
+      articulosPorHojaActa,
+      (i) => pw.Expanded(
+        child: pw.Padding(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 2),
+          child: _cajaFoto(
+            i < pagina.length ? pagina[i] : null,
+            i + 1,
+            altura: 130,
+            fontSizeNumero: 9,
           ),
         ),
-      );
-    }),
+      ),
+    ),
+  );
+}
+
+/// Cuadricula de 2 columnas (2+2+1) con las fotos a mayor tamaño para la
+/// hoja dedicada de fotografias ("Imagenes separadas en el reporte").
+pw.Widget _cuadriculaFotosGrandes(List<Articulo> pagina) {
+  const alturaCaja = 190.0;
+  final filas = <pw.Widget>[];
+  for (var i = 0; i < articulosPorHojaActa; i += 2) {
+    final quedaUnaSola = i + 1 >= articulosPorHojaActa;
+    filas.add(
+      // Sin crossAxisAlignment.stretch: dentro de un MultiPage, la primera
+      // pasada mide el contenido con altura no acotada, y stretch fuerza esa
+      // altura infinita hacia abajo como una restriccion tight, lo que
+      // rompe el Expanded interno de _cajaFoto (altura ya es fija via
+      // Container, no necesita stretch para igualarse).
+      pw.Row(
+        children: [
+          pw.Expanded(
+            child: _cajaFoto(
+              i < pagina.length ? pagina[i] : null,
+              i + 1,
+              altura: alturaCaja,
+              fontSizeNumero: 12,
+            ),
+          ),
+          pw.SizedBox(width: 10),
+          pw.Expanded(
+            child: quedaUnaSola
+                ? pw.Container()
+                : _cajaFoto(
+                    (i + 1) < pagina.length ? pagina[i + 1] : null,
+                    i + 2,
+                    altura: alturaCaja,
+                    fontSizeNumero: 12,
+                  ),
+          ),
+        ],
+      ),
+    );
+    filas.add(pw.SizedBox(height: 10));
+  }
+  return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.stretch, children: filas);
+}
+
+pw.Widget _cajaFoto(
+  Articulo? articulo,
+  int numero, {
+  required double altura,
+  required double fontSizeNumero,
+}) {
+  final fotoPath = articulo?.fotoPath;
+  final tieneFoto = fotoPath != null && File(fotoPath).existsSync();
+  return pw.Container(
+    height: altura,
+    decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.5)),
+    child: pw.Column(
+      children: [
+        pw.Padding(
+          padding: const pw.EdgeInsets.all(3),
+          child: pw.Text(
+            '$numero',
+            style: pw.TextStyle(
+              fontSize: fontSizeNumero,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+        ),
+        pw.Expanded(
+          child: tieneFoto
+              ? pw.Padding(
+                  padding: const pw.EdgeInsets.all(2),
+                  child: pw.Image(
+                    pw.MemoryImage(File(fotoPath).readAsBytesSync()),
+                    fit: pw.BoxFit.contain,
+                  ),
+                )
+              : pw.Container(),
+        ),
+      ],
+    ),
   );
 }
 

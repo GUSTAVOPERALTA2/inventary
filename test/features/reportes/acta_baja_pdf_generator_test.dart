@@ -111,4 +111,63 @@ void main() {
     );
     expect(bytes, isNotEmpty); // el pdf resultante es valido aunque sin paginas de datos
   });
+
+  group('imagenesSeparadas', () {
+    final encabezadoSeparado = EncabezadoActa(
+      nombreLote: 'Lote de prueba',
+      area: 'SEGURIDAD',
+      departamento: 'ADMINISTRACION',
+      fecha: DateTime(2026, 4, 7),
+      hora: '15:00',
+      imagenesSeparadas: true,
+    );
+
+    test('una hoja de 5 articulos genera 2 paginas (datos + fotos)',
+        () async {
+      final articulos = List.generate(5, (i) => _articulo(id: i + 1));
+
+      final sinSeparar = await generarActaBajaPdf(
+        articulos: articulos,
+        encabezado: encabezado,
+      );
+      final separadas = await generarActaBajaPdf(
+        articulos: articulos,
+        encabezado: encabezadoSeparado,
+      );
+
+      expect(_contarPaginas(sinSeparar), 1);
+      expect(_contarPaginas(separadas), 2);
+    });
+
+    test('12 articulos (3 hojas de datos) generan 6 paginas en total',
+        () async {
+      final articulos = List.generate(12, (i) => _articulo(id: i + 1));
+
+      final separadas = await generarActaBajaPdf(
+        articulos: articulos,
+        encabezado: encabezadoSeparado,
+      );
+
+      expect(_contarPaginas(separadas), 6);
+    });
+
+    test('incluye la foto de un articulo en su propia hoja de fotos',
+        () async {
+      final tempDir = await Directory.systemTemp.createTemp('acta_pdf_test');
+      final foto = File('${tempDir.path}/foto.png');
+      await foto.writeAsBytes(base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      ));
+
+      final bytes = await generarActaBajaPdf(
+        articulos: [_articulo(id: 1, fotoPath: foto.path)],
+        encabezado: encabezadoSeparado,
+      );
+
+      expect(bytes, isNotEmpty);
+      expect(_contarPaginas(bytes), 2);
+
+      await tempDir.delete(recursive: true);
+    });
+  });
 }

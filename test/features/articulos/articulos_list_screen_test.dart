@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:app_inventario/core/db/database.dart';
 import 'package:app_inventario/data/repositories/articulos_repository.dart';
 import 'package:app_inventario/data/repositories/campos_config_repository.dart';
@@ -6,9 +8,29 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:provider/provider.dart';
 
-Widget _buildTestApp(AppDatabase db, int loteId) {
+/// Doble de prueba para no depender del plugin nativo de la cámara: entrega
+/// siempre el mismo archivo (o null, simulando que el usuario canceló).
+class _FakeImagePickerPlatform extends ImagePickerPlatform {
+  _FakeImagePickerPlatform(this._rutaAEntregar);
+  final String? _rutaAEntregar;
+
+  @override
+  Future<XFile?> getImageFromSource({
+    required ImageSource source,
+    ImagePickerOptions options = const ImagePickerOptions(),
+  }) async {
+    return _rutaAEntregar == null ? null : XFile(_rutaAEntregar);
+  }
+}
+
+Widget _buildTestApp(
+  AppDatabase db,
+  int loteId, {
+  Directory? directorioFotos,
+}) {
   return MultiProvider(
     providers: [
       Provider<AppDatabase>.value(value: db),
@@ -20,7 +42,12 @@ Widget _buildTestApp(AppDatabase db, int loteId) {
       ),
     ],
     child: MaterialApp(
-      home: ArticulosListScreen(loteId: loteId, nombreLote: 'Lote de prueba'),
+      home: ArticulosListScreen(
+        loteId: loteId,
+        nombreLote: 'Lote de prueba',
+        obtenerDirectorioFotos:
+            directorioFotos == null ? null : () async => directorioFotos,
+      ),
     ),
   );
 }
@@ -32,16 +59,34 @@ Future<void> _desmontar(WidgetTester tester) async {
   await tester.pump(Duration.zero);
 }
 
+/// El formulario ya no cabe en el tamaño de pantalla de prueba por defecto;
+/// sin esto, el ListView no llega a construir los widgets fuera de la vista
+/// (mas alla del cache extent) y los finders no los encuentran.
+void _agrandarViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1080, 3000);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+}
+
 void main() {
   late AppDatabase db;
   late int loteId;
+  late Directory tempDir;
 
   setUp(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     loteId = await db.lotesDao
         .insertLote(LotesCompanion.insert(nombre: 'Lote de prueba'));
+    tempDir =
+        await Directory.systemTemp.createTemp('articulos_list_screen_test');
   });
-  tearDown(() => db.close());
+  tearDown(() async {
+    await db.close();
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
+  });
 
   testWidgets('muestra el estado vacío cuando no hay artículos',
       (tester) async {
@@ -54,7 +99,16 @@ void main() {
   });
 
   testWidgets('crear un artículo lo agrega a la lista', (tester) async {
-    await tester.pumpWidget(_buildTestApp(db, loteId));
+    _agrandarViewport(tester);
+    final directorioFotos = Directory('${tempDir.path}/documents')
+      ..createSync();
+    final fotoOrigen = File('${tempDir.path}/camera_capture.jpg')
+      ..writeAsBytesSync([9, 9, 9]);
+    ImagePickerPlatform.instance = _FakeImagePickerPlatform(fotoOrigen.path);
+
+    await tester.pumpWidget(
+      _buildTestApp(db, loteId, directorioFotos: directorioFotos),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(FloatingActionButton));
@@ -81,6 +135,15 @@ void main() {
       '150',
     );
 
+    // El picker (fake) y la copia a disco son E/S real; sin runAsync,
+    // testWidgets corre dentro de una zona FakeAsync donde ese trabajo
+    // nunca llega a completarse.
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Tomar foto'));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('Crear artículo'));
     await tester.pumpAndSettle();
 
@@ -91,6 +154,14 @@ void main() {
   });
 
   testWidgets('editar un artículo actualiza la lista', (tester) async {
+    _agrandarViewport(tester);
+    final directorioFotos = Directory('${tempDir.path}/documents')
+      ..createSync();
+    final fotoExistente =
+        File('${directorioFotos.path}/fotos_articulos/existente.jpg')
+          ..createSync(recursive: true);
+    fotoExistente.writeAsBytesSync([1]);
+
     await db.articulosDao.insertArticulo(ArticulosCompanion.insert(
       loteId: loteId,
       noSerie: 'SN-200',
@@ -98,10 +169,13 @@ void main() {
       cantidad: 1,
       unidadMedida: const Value('Pieza'),
       precioUnitario: const Value(500),
+      fotoPath: Value(fotoExistente.path),
       customValues: const {},
     ));
 
-    await tester.pumpWidget(_buildTestApp(db, loteId));
+    await tester.pumpWidget(
+      _buildTestApp(db, loteId, directorioFotos: directorioFotos),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('SN-200'));
@@ -115,6 +189,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Monitor 24 pulgadas'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNothing);
 
     await _desmontar(tester);
   });

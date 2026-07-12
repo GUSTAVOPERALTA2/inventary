@@ -21,6 +21,9 @@ const _opcionOtroUnidad = 'Otro';
 
 /// Formulario de alta/edicion de un articulo dentro de un lote.
 /// Si [articulo] viene null es un alta; si no, edita ese articulo.
+///
+/// Los unicos campos obligatorios son No. de serie, Descripcion, Cantidad y
+/// la fotografia; el resto (unidad de medida, precio unitario) es opcional.
 class ArticuloFormScreen extends StatefulWidget {
   const ArticuloFormScreen({
     super.key,
@@ -43,6 +46,7 @@ class ArticuloFormScreen extends StatefulWidget {
 
 class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _fotoFieldKey = GlobalKey<FormFieldState<String>>();
   late final TextEditingController _noSerieController;
   late final TextEditingController _descripcionController;
   late final TextEditingController _cantidadController;
@@ -101,10 +105,16 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
       directorioBase: directorioBase,
     );
 
-    if (mounted) setState(() => _fotoPath = rutaFinal);
+    if (mounted) {
+      setState(() => _fotoPath = rutaFinal);
+      _fotoFieldKey.currentState?.didChange(_fotoPath);
+    }
   }
 
-  void _quitarFoto() => setState(() => _fotoPath = null);
+  void _quitarFoto() {
+    setState(() => _fotoPath = null);
+    _fotoFieldKey.currentState?.didChange(_fotoPath);
+  }
 
   Future<void> _escanear() async {
     final resultado = await Navigator.push<String>(
@@ -160,36 +170,46 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
                   : null,
             ),
             const SizedBox(height: 16),
-            SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: true, label: Text('Entero')),
-                ButtonSegment(value: false, label: Text('Decimal')),
-              ],
-              selected: {_esEntero},
-              onSelectionChanged: (seleccion) {
-                setState(() => _esEntero = seleccion.first);
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _cantidadController,
-              decoration: const InputDecoration(labelText: 'Cantidad'),
-              keyboardType: TextInputType.numberWithOptions(
-                decimal: !_esEntero,
-              ),
-              inputFormatters: [
-                if (_esEntero)
-                  FilteringTextInputFormatter.digitsOnly
-                else
-                  FilteringTextInputFormatter.allow(
-                    RegExp(r'[0-9.,]'),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _cantidadController,
+                    decoration: const InputDecoration(labelText: 'Cantidad'),
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: !_esEntero,
+                    ),
+                    inputFormatters: [
+                      if (_esEntero)
+                        FilteringTextInputFormatter.digitsOnly
+                      else
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[0-9.,]'),
+                        ),
+                    ],
+                    validator: (value) {
+                      final cantidad =
+                          parseCantidad(value ?? '', esEntero: _esEntero);
+                      return cantidad == null ? 'Cantidad inválida' : null;
+                    },
                   ),
+                ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: DropdownButton<bool>(
+                    value: _esEntero,
+                    items: const [
+                      DropdownMenuItem(value: true, child: Text('Entero')),
+                      DropdownMenuItem(value: false, child: Text('Decimal')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) setState(() => _esEntero = value);
+                    },
+                  ),
+                ),
               ],
-              validator: (value) {
-                final cantidad =
-                    parseCantidad(value ?? '', esEntero: _esEntero);
-                return cantidad == null ? 'Cantidad inválida' : null;
-              },
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
@@ -227,12 +247,35 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
               ],
               validator: (value) {
-                final precio = parseCantidad(value ?? '', esEntero: false);
+                if (value == null || value.trim().isEmpty) return null;
+                final precio = parseCantidad(value, esEntero: false);
                 return precio == null ? 'Precio inválido' : null;
               },
             ),
             const SizedBox(height: 24),
-            _seccionFoto(),
+            FormField<String>(
+              key: _fotoFieldKey,
+              initialValue: _fotoPath,
+              validator: (value) =>
+                  value == null ? 'La fotografía es obligatoria' : null,
+              builder: (field) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _seccionFoto(),
+                  if (field.errorText != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, left: 4),
+                      child: Text(
+                        field.errorText!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
             const SizedBox(height: 8),
             FilledButton(
               onPressed: () => _guardar(context),
@@ -283,7 +326,7 @@ class _ArticuloFormScreenState extends State<ArticuloFormScreen> {
     final cantidad =
         parseCantidad(_cantidadController.text, esEntero: _esEntero)!;
     final precioUnitario =
-        parseCantidad(_precioUnitarioController.text, esEntero: false)!;
+        parseCantidad(_precioUnitarioController.text, esEntero: false) ?? 0;
     final unidadMedida = switch (_unidadMedidaSeleccionada) {
       null => '',
       _opcionOtroUnidad => _unidadMedidaController.text.trim(),

@@ -22,6 +22,7 @@ class ArticulosListScreen extends StatelessWidget {
     required this.loteId,
     required this.nombreLote,
     this.obtenerDirectorioZip,
+    this.obtenerDirectorioFotos,
     this.compartirArchivo,
   });
 
@@ -32,6 +33,11 @@ class ArticulosListScreen extends StatelessWidget {
   /// documentos real de la app (path_provider), pero en tests se puede
   /// pasar un directorio temporal para no depender de un plugin nativo.
   final Future<Directory> Function()? obtenerDirectorioZip;
+
+  /// Se reenvia tal cual a [ArticuloFormScreen]: por defecto resuelve al
+  /// directorio de documentos real, pero en tests se puede pasar uno
+  /// temporal para no depender de path_provider.
+  final Future<Directory> Function()? obtenerDirectorioFotos;
 
   /// Punto de inyección para tests: por defecto abre el selector nativo
   /// de "compartir" (share_plus); en tests se puede sustituir por un
@@ -113,7 +119,11 @@ class ArticulosListScreen extends StatelessWidget {
     return Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ArticuloFormScreen(loteId: loteId, articulo: articulo),
+        builder: (_) => ArticuloFormScreen(
+          loteId: loteId,
+          articulo: articulo,
+          obtenerDirectorioFotos: obtenerDirectorioFotos,
+        ),
       ),
     );
   }
@@ -149,35 +159,47 @@ class ArticulosListScreen extends StatelessWidget {
   Future<EncabezadoActa?> _pedirDatosActa(BuildContext context) async {
     final areaController = TextEditingController();
     final departamentoController = TextEditingController();
+    var imagenesSeparadas = false;
 
     final confirmado = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Datos del acta'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: areaController,
-              autofocus: true,
-              decoration: const InputDecoration(labelText: 'Área'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setState) => AlertDialog(
+          title: const Text('Datos del acta'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: areaController,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Área'),
+              ),
+              TextField(
+                controller: departamentoController,
+                decoration: const InputDecoration(labelText: 'Departamento'),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text('Imágenes separadas en el reporte'),
+                value: imagenesSeparadas,
+                onChanged: (value) {
+                  setState(() => imagenesSeparadas = value ?? false);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
             ),
-            TextField(
-              controller: departamentoController,
-              decoration: const InputDecoration(labelText: 'Departamento'),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Generar'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Generar'),
-          ),
-        ],
       ),
     );
 
@@ -191,6 +213,7 @@ class ArticulosListScreen extends StatelessWidget {
       fecha: ahora,
       hora: '${ahora.hour.toString().padLeft(2, '0')}:'
           '${ahora.minute.toString().padLeft(2, '0')}',
+      imagenesSeparadas: imagenesSeparadas,
     );
   }
 

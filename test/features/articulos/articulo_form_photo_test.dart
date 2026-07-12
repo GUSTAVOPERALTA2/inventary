@@ -144,8 +144,9 @@ void main() {
     await _desmontar(tester);
   });
 
-  testWidgets('quitar la foto la limpia y se guarda como null al confirmar',
-      (tester) async {
+  testWidgets(
+      'quitar la foto sin volver a tomar una bloquea el guardado '
+      '(la fotografía es obligatoria)', (tester) async {
     _agrandarViewport(tester);
     final fotoGuardada =
         File('${directorioFotos.path}/fotos_articulos/existente.jpg')
@@ -188,8 +189,13 @@ void main() {
     await tester.tap(find.text('Guardar cambios'));
     await tester.pumpAndSettle();
 
-    final actualizado = await db.articulosDao.getArticuloById(articuloId);
-    expect(actualizado.fotoPath, isNull);
+    // La validacion bloquea el guardado: el formulario sigue abierto,
+    // muestra el error, y el registro en la base no cambia.
+    expect(find.text('La fotografía es obligatoria'), findsOneWidget);
+    expect(find.text('Guardar cambios'), findsOneWidget);
+
+    final sinCambios = await db.articulosDao.getArticuloById(articuloId);
+    expect(sinCambios.fotoPath, fotoGuardada.path);
 
     await _desmontar(tester);
   });
