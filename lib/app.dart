@@ -6,7 +6,7 @@ import 'core/session/lote_activo_controller.dart';
 import 'data/repositories/articulos_repository.dart';
 import 'data/repositories/campos_config_repository.dart';
 import 'data/repositories/lotes_repository.dart';
-import 'features/lotes/lotes_list_screen.dart';
+import 'features/splash/splash_screen.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -37,9 +37,9 @@ class App extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Inventario Viceroy',
-        theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-        home: const LotesListScreen(),
+        title: 'BAJAPRO',
+        theme: ThemeData(colorSchemeSeed: colorMarcaBajapro, useMaterial3: true),
+        home: const SplashScreen(),
       ),
     );
   }
