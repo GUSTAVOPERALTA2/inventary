@@ -97,6 +97,11 @@ traer el código y levantar el servicio.
 
 - `GET /version` → JSON con `versionCode`, `versionName`, `apkUrl`, `notas`.
 - `GET /descargas/<archivo>` → sirve el archivo tal cual (estático).
+- `GET /qr` → página con un código QR que apunta directo al `apkUrl`
+  vigente (se regenera solo a partir de `version.json`, siempre actualizado).
+  Ábrela desde una PC/pantalla (`http://172.16.130.10:4300/qr`) para que
+  cada quien la escanee con la cámara del teléfono y descargue el APK sin
+  tener que escribir la URL a mano.
 
 ## Nota sobre HTTPS
 
