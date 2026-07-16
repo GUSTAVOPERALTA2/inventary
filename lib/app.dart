@@ -11,9 +11,7 @@ import 'data/repositories/lotes_repository.dart';
 import 'features/splash/splash_screen.dart';
 
 /// Dirección del servidor local de actualizaciones (ver `server/README.md`).
-/// Debe apuntar a la IP o nombre de la máquina donde corra ese servidor
-/// dentro de la red de la propiedad.
-const String _endpointVersion = 'http://192.168.1.100:4000/version';
+const String _endpointVersion = 'http://172.16.130.10:4300/version';
 
 class App extends StatefulWidget {
   const App({super.key});

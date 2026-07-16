@@ -1,6 +1,6 @@
 {
   "versionCode": 1,
   "versionName": "1.0.0",
-  "apkUrl": "http://192.168.1.100:4000/descargas/app-release.apk",
+  "apkUrl": "http://172.16.130.10:4300/descargas/app-release.apk",
   "notas": "Version inicial."
 }

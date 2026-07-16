@@ -3,7 +3,10 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+// 3000 y 4000 ya estan ocupados en el servidor (172.16.130.10); 4300 es el
+// puerto asignado a este servicio. Sigue siendo configurable con PORT si
+// hiciera falta cambiarlo mas adelante.
+const PORT = process.env.PORT || 4300;
 const VERSION_FILE = path.join(__dirname, 'version.json');
 
 // La app BAJAPRO consulta este endpoint (solo cuando detecta wifi) para

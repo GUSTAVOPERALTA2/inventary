@@ -5,44 +5,93 @@ para saber si hay una versión más nueva del APK disponible. No guarda datos
 de los dispositivos ni de los lotes/artículos — la app sigue funcionando
 100% offline para todo lo demás; esto es únicamente el chequeo de versión.
 
-## Cómo correrlo
+Este servidor está pensado para correr en **172.16.130.10, puerto 4300**
+(3000 y 4000 ya están ocupados por otros servicios en esa máquina). Tanto
+`server/version.json` como `lib/app.dart` (`_endpointVersion`) ya apuntan
+ahí — si la IP o el puerto cambiaran, hay que actualizar ambos y volver a
+generar el APK.
 
-```bash
-cd server
-npm install
-npm start
-```
+## Primera vez: dejarlo instalado en 172.16.130.10 (Windows)
 
-Por defecto escucha en el puerto `4000`. Para usar otro puerto:
+Node.js y git ya están instalados en esa máquina, así que solo hace falta
+traer el código y levantar el servicio.
 
-```bash
-PORT=8080 npm start
-```
+1. **Traer el código.** Conéctate a 172.16.130.10 (RDP o como administren
+   esa máquina normalmente) y clona el repo (o `git pull` si ya existe):
 
-Para dejarlo corriendo de forma permanente en un servidor Windows, la forma
-más simple es con [pm2](https://pm2.keymetrics.io/) (`npm install -g pm2`,
-luego `pm2 start server.js --name bajapro-updates`) o registrándolo como
-tarea programada/servicio de Windows.
+   ```powershell
+   git clone https://github.com/GUSTAVOPERALTA2/inventary.git C:\BAJAPRO
+   cd C:\BAJAPRO\server
+   ```
 
-## Cómo publicar una actualización
+   Para futuras actualizaciones del propio servidor (no del APK, sino de
+   `server.js`/`version.json` si cambian), basta con `git pull` en esa
+   misma carpeta.
 
-1. Genera el nuevo APK (`flutter build apk --release` en la carpeta del
-   proyecto) y copia `build/app/outputs/flutter-apk/app-release.apk` a la
-   carpeta `descargas/` de este servidor (sobrescribiendo el anterior).
-2. Edita `version.json`:
+2. **Instalar dependencias:**
+
+   ```powershell
+   npm install
+   ```
+
+3. **Dejarlo corriendo permanentemente con pm2** (para que sobreviva a
+   cerrar la sesión y a reinicios de la máquina):
+
+   ```powershell
+   npm install -g pm2
+   npm install -g pm2-windows-startup
+   pm2-startup install
+
+   pm2 start server.js --name bajapro-updates
+   pm2 save
+   ```
+
+   Con esto, `pm2 start`/`pm2 save` deja el proceso registrado para que
+   arranque solo la próxima vez que la máquina se reinicie. Comandos útiles
+   después:
+
+   ```powershell
+   pm2 status              # ver si sigue corriendo
+   pm2 logs bajapro-updates  # ver el log en vivo
+   pm2 restart bajapro-updates  # tras cambiar server.js o version.json
+   ```
+
+4. **Abrir el puerto 4300 en el firewall de Windows** (si no está ya
+   abierto), para que los teléfonos en la red local puedan llegar a él:
+
+   ```powershell
+   netsh advfirewall firewall add rule name="BAJAPRO updates" dir=in action=allow protocol=TCP localport=4300
+   ```
+
+5. **Probar desde la propia máquina y desde otra en la red:**
+
+   ```powershell
+   curl http://localhost:4300/version
+   curl http://172.16.130.10:4300/version
+   ```
+
+   Si el segundo falla pero el primero funciona, es el firewall (paso 4) o
+   que 172.16.130.10 no es la IP real de esa máquina (confirmar con
+   `ipconfig`).
+
+## Cómo publicar una actualización (de aquí en adelante)
+
+1. En la máquina de desarrollo: `flutter build apk --release` y copia
+   `build/app/outputs/flutter-apk/app-release.apk` a
+   `C:\BAJAPRO\server\descargas\` en 172.16.130.10 (por red compartida,
+   RDP, o el medio que usen para pasar archivos a esa máquina).
+2. Edita `version.json` en esa misma carpeta:
    - `versionCode`: súbelo en 1 respecto al anterior (debe ser mayor al
      `versionCode` que trae el APK instalado — coincide con el número
      después del `+` en `pubspec.yaml`, ej. `1.0.1+2` → `versionCode: 2`).
    - `versionName`: el nombre de versión visible (ej. `"1.0.1"`).
-   - `apkUrl`: la URL completa donde quedará accesible el APK — debe
-     apuntar a la IP o nombre de esta máquina en la red local, por ejemplo
-     `http://192.168.1.50:4000/descargas/app-release.apk`. Para saber la IP
-     de esta máquina en la red: `ipconfig` (Windows) y busca la dirección
-     IPv4 del adaptador de red conectado.
+   - `apkUrl`: ya apunta a
+     `http://172.16.130.10:4300/descargas/app-release.apk` — no hace falta
+     tocarlo salvo que cambie la IP o el puerto.
    - `notas`: texto corto opcional que se le muestra al usuario en el
      diálogo de actualización.
-3. No hace falta reiniciar el servidor: `version.json` se lee en cada
-   consulta a `/version`.
+3. No hace falta reiniciar el servidor ni hacer `pm2 restart`:
+   `version.json` y los archivos de `descargas/` se leen en cada consulta.
 
 ## Endpoints
 
