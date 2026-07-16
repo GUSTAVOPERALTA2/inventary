@@ -7,4 +7,6 @@ class LoteActivoController extends ValueNotifier<int?> {
   LoteActivoController() : super(null);
 
   void seleccionar(int loteId) => value = loteId;
+
+  void limpiar() => value = null;
 }

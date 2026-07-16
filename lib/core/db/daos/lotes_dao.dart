@@ -18,4 +18,9 @@ class LotesDao extends DatabaseAccessor<AppDatabase> with _$LotesDaoMixin {
       (select(lotes)..where((t) => t.id.equals(id))).getSingle();
 
   Future<int> insertLote(LotesCompanion entry) => into(lotes).insert(entry);
+
+  Future<bool> updateLote(Lote lote) => update(lotes).replace(lote);
+
+  Future<int> deleteLote(int id) =>
+      (delete(lotes)..where((t) => t.id.equals(id))).go();
 }

@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/db/database.dart';
 import '../../core/session/lote_activo_controller.dart';
+import '../../data/repositories/articulos_repository.dart';
 import '../../data/repositories/lotes_repository.dart';
 import '../articulos/articulos_list_screen.dart';
 
@@ -38,9 +41,26 @@ class LotesListScreen extends StatelessWidget {
               return ListTile(
                 title: Text(lote.nombre),
                 subtitle: Text(_formatFecha(lote.fechaCreacion)),
-                trailing: seleccionado
-                    ? const Icon(Icons.check_circle, color: Colors.green)
-                    : null,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (seleccionado)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: Icon(Icons.check_circle, color: Colors.green),
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Renombrar',
+                      onPressed: () => _editarLote(context, repo, lote),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Eliminar',
+                      onPressed: () => _confirmarEliminarLote(context, repo, lote),
+                    ),
+                  ],
+                ),
                 selected: seleccionado,
                 onTap: () {
                   loteActivo.seleccionar(lote.id);
@@ -101,5 +121,90 @@ class LotesListScreen extends StatelessWidget {
     if (nombre != null && nombre.isNotEmpty) {
       await repo.crearLote(nombre);
     }
+  }
+
+  Future<void> _editarLote(
+    BuildContext context,
+    LotesRepository repo,
+    Lote lote,
+  ) async {
+    final controller = TextEditingController(text: lote.nombre);
+    final nuevoNombre = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Renombrar lote'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nombre del lote'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    if (nuevoNombre != null &&
+        nuevoNombre.isNotEmpty &&
+        nuevoNombre != lote.nombre) {
+      await repo.renombrarLote(lote, nuevoNombre);
+    }
+  }
+
+  Future<void> _confirmarEliminarLote(
+    BuildContext context,
+    LotesRepository repo,
+    Lote lote,
+  ) async {
+    final articulosRepo = context.read<ArticulosRepository>();
+    final articulos = await articulosRepo.watchArticulosByLote(lote.id).first;
+
+    if (!context.mounted) return;
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar lote'),
+        content: Text(
+          articulos.isEmpty
+              ? '¿Eliminar el lote "${lote.nombre}"? Esta acción no se puede deshacer.'
+              : '¿Eliminar el lote "${lote.nombre}"? También se eliminarán '
+                  'sus ${articulos.length} artículo(s) y sus fotografías. '
+                  'Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true) return;
+
+    for (final articulo in articulos) {
+      final fotoPath = articulo.fotoPath;
+      if (fotoPath == null) continue;
+      final archivo = File(fotoPath);
+      if (await archivo.exists()) {
+        await archivo.delete();
+      }
+    }
+    await articulosRepo.eliminarArticulosDelLote(lote.id);
+    await repo.eliminarLote(lote.id);
+
+    if (!context.mounted) return;
+    final loteActivo = context.read<LoteActivoController>();
+    if (loteActivo.value == lote.id) loteActivo.limpiar();
   }
 }

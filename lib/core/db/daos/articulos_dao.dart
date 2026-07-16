@@ -24,4 +24,7 @@ class ArticulosDao extends DatabaseAccessor<AppDatabase>
 
   Future<int> deleteArticulo(int id) =>
       (delete(articulos)..where((t) => t.id.equals(id))).go();
+
+  Future<int> deleteArticulosByLote(int loteId) =>
+      (delete(articulos)..where((t) => t.loteId.equals(loteId))).go();
 }

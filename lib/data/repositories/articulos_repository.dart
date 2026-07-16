@@ -41,4 +41,7 @@ class ArticulosRepository {
       _dao.updateArticulo(articulo.toCompanion(false));
 
   Future<int> eliminarArticulo(int id) => _dao.deleteArticulo(id);
+
+  Future<int> eliminarArticulosDelLote(int loteId) =>
+      _dao.deleteArticulosByLote(loteId);
 }

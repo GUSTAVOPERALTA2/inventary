@@ -14,4 +14,9 @@ class LotesRepository {
 
   Future<int> crearLote(String nombre) =>
       _dao.insertLote(LotesCompanion.insert(nombre: nombre));
+
+  Future<bool> renombrarLote(Lote lote, String nuevoNombre) =>
+      _dao.updateLote(lote.copyWith(nombre: nuevoNombre));
+
+  Future<int> eliminarLote(int id) => _dao.deleteLote(id);
 }
