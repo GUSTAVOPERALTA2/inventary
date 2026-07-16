@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const multer = require('multer');
 const QRCode = require('qrcode');
 
 const app = express();
@@ -9,6 +11,20 @@ const app = express();
 // hiciera falta cambiarlo mas adelante.
 const PORT = process.env.PORT || 4300;
 const VERSION_FILE = path.join(__dirname, 'version.json');
+const DESCARGAS_DIR = path.join(__dirname, 'descargas');
+const TOKEN_FILE = path.join(__dirname, 'upload_token.txt');
+
+// Token para autorizar POST /upload (no se versiona en git). Si no existe
+// todavia, se genera uno nuevo y se guarda; asi no hay que elegir ni
+// distribuir una contraseña a mano.
+let uploadToken;
+if (fs.existsSync(TOKEN_FILE)) {
+  uploadToken = fs.readFileSync(TOKEN_FILE, 'utf-8').trim();
+} else {
+  uploadToken = crypto.randomBytes(16).toString('hex');
+  fs.writeFileSync(TOKEN_FILE, uploadToken);
+  console.log('Token de subida generado (guardado en upload_token.txt):', uploadToken);
+}
 
 // La app BAJAPRO consulta este endpoint (solo cuando detecta wifi) para
 // saber si hay una version mas nueva que la instalada. Basta con editar
@@ -26,7 +42,61 @@ app.get('/version', (req, res) => {
 
 // Sirve los .apk publicados como archivos estaticos, p. ej.
 // GET /descargas/app-release.apk
-app.use('/descargas', express.static(path.join(__dirname, 'descargas')));
+app.use('/descargas', express.static(DESCARGAS_DIR));
+
+function verificarToken(req, res, next) {
+  if (req.query.token !== uploadToken) {
+    return res.status(401).send('Token invalido o faltante');
+  }
+  next();
+}
+
+const uploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, DESCARGAS_DIR),
+  // Nombre fijo: siempre sobrescribe el APK anterior, que es exactamente
+  // lo que ya sirve /descargas/app-release.apk.
+  filename: (req, file, cb) => cb(null, 'app-release.apk'),
+});
+const upload = multer({ storage: uploadStorage });
+
+// Publica una actualizacion en un solo paso: sube el .apk (campo "apk",
+// multipart/form-data) y, si vienen versionCode/versionName, tambien
+// reescribe version.json. Protegido con ?token=... (ver upload_token.txt
+// en esta misma carpeta, generado la primera vez que corre el servidor).
+//
+// Ejemplo (PowerShell, desde la maquina de desarrollo):
+//   Invoke-RestMethod -Uri "http://172.16.130.10:4300/upload?token=XXXX" -Method Post -Form @{
+//     apk = Get-Item "build\app\outputs\flutter-apk\app-release.apk"
+//     versionCode = "3"
+//     versionName = "1.1.0"
+//     notas = "Permite renombrar y eliminar lotes"
+//   }
+app.post('/upload', verificarToken, upload.single('apk'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Falta el archivo "apk"' });
+  }
+
+  const { versionCode, versionName, notas } = req.body;
+  let versionActualizada = null;
+  if (versionCode && versionName) {
+    const apkUrl = `${req.protocol}://${req.get('host')}/descargas/app-release.apk`;
+    versionActualizada = {
+      versionCode: parseInt(versionCode, 10),
+      versionName,
+      apkUrl,
+      notas: notas || '',
+    };
+    fs.writeFileSync(VERSION_FILE, JSON.stringify(versionActualizada, null, 2));
+  }
+
+  res.json({
+    ok: true,
+    mensaje: versionActualizada
+      ? 'APK subido y version.json actualizado'
+      : 'APK subido (version.json sin cambios: no se enviaron versionCode/versionName)',
+    version: versionActualizada,
+  });
+});
 
 // Pagina con un QR que apunta directo al apkUrl vigente (el mismo que
 // devuelve /version): se abre desde una PC/pantalla y la gente lo escanea

@@ -76,22 +76,40 @@ traer el código y levantar el servicio.
 
 ## Cómo publicar una actualización (de aquí en adelante)
 
-1. En la máquina de desarrollo: `flutter build apk --release` y copia
-   `build/app/outputs/flutter-apk/app-release.apk` a
-   `C:\BAJAPRO\server\descargas\` en 172.16.130.10 (por red compartida,
-   RDP, o el medio que usen para pasar archivos a esa máquina).
-2. Edita `version.json` en esa misma carpeta:
-   - `versionCode`: súbelo en 1 respecto al anterior (debe ser mayor al
-     `versionCode` que trae el APK instalado — coincide con el número
-     después del `+` en `pubspec.yaml`, ej. `1.0.1+2` → `versionCode: 2`).
-   - `versionName`: el nombre de versión visible (ej. `"1.0.1"`).
-   - `apkUrl`: ya apunta a
-     `http://172.16.130.10:4300/descargas/app-release.apk` — no hace falta
-     tocarlo salvo que cambie la IP o el puerto.
-   - `notas`: texto corto opcional que se le muestra al usuario en el
-     diálogo de actualización.
+La forma rápida: un solo comando desde la máquina de desarrollo, sin RDP
+ni acceder por red a 172.16.130.10 (ver `POST /upload` más abajo).
+
+1. La primera vez, consigue el token de subida: conéctate una vez a
+   172.16.130.10 y mira `C:\BAJAPRO\server\upload_token.txt` (se genera
+   solo, la primera vez que arranca el servidor). Guárdalo en tu máquina
+   de desarrollo, por ejemplo como variable de entorno:
+
+   ```powershell
+   $env:BAJAPRO_UPLOAD_TOKEN = "el-token-que-copiaste"
+   ```
+
+2. Desde la raíz del proyecto, en la máquina de desarrollo:
+
+   ```powershell
+   flutter build apk --release
+   .\publicar_actualizacion.ps1 -VersionCode 3 -VersionName "1.1.0" -Notas "Permite renombrar y eliminar lotes"
+   ```
+
+   Esto sube el APK y reescribe `version.json` en el servidor en un solo
+   paso — no hace falta copiar el archivo a mano ni editar JSON. El
+   `VersionCode` debe ser mayor al anterior (coincide con el número
+   después del `+` en `pubspec.yaml`, ej. `1.0.1+2` → `-VersionCode 2`).
+
 3. No hace falta reiniciar el servidor ni hacer `pm2 restart`:
    `version.json` y los archivos de `descargas/` se leen en cada consulta.
+
+### Alternativa manual (sin el script)
+
+Si prefieres no usar el script, sigue funcionando copiar el archivo a
+mano: copia `build/app/outputs/flutter-apk/app-release.apk` a
+`C:\BAJAPRO\server\descargas\` (por RDP o red compartida) y edita
+`version.json` ahí mismo con los mismos campos (`versionCode`,
+`versionName`, `apkUrl`, `notas`).
 
 ## Endpoints
 
@@ -102,6 +120,12 @@ traer el código y levantar el servicio.
   Ábrela desde una PC/pantalla (`http://172.16.130.10:4300/qr`) para que
   cada quien la escanee con la cámara del teléfono y descargue el APK sin
   tener que escribir la URL a mano.
+- `POST /upload?token=...` → sube el `.apk` (campo `apk`,
+  multipart/form-data) y, si vienen `versionCode`/`versionName`/`notas`,
+  reescribe `version.json` en la misma llamada. Requiere el token de
+  `upload_token.txt` (generado solo, la primera vez que arranca el
+  servidor). Pensado para usarse vía `publicar_actualizacion.ps1`, no a
+  mano.
 
 ## Nota sobre HTTPS
 
