@@ -2,13 +2,13 @@ import 'package:app_inventario/core/actualizaciones/dialogo_actualizacion.dart';
 import 'package:app_inventario/core/actualizaciones/version_checker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:open_file/open_file.dart';
 
 void main() {
   const info = InfoVersionRemota(
     versionCode: 3,
     versionName: '1.2.0',
-    apkUrl: 'http://192.168.1.100:4000/descargas/app-release.apk',
+    apkUrl: 'http://192.168.1.100:4300/descargas/app-release.apk',
     notas: 'Corrige un bug',
   );
 
@@ -26,16 +26,14 @@ void main() {
   }
 
   testWidgets('muestra la version y las notas', (tester) async {
-    late BuildContext capturedContext;
-    await tester.pumpWidget(
-      buildTestApp(() {}),
-    );
-    capturedContext = tester.element(find.text('abrir'));
+    await tester.pumpWidget(buildTestApp(() {}));
+    final capturedContext = tester.element(find.text('abrir'));
 
     mostrarDialogoActualizacion(
       capturedContext,
       info,
-      abrirUrl: (url, {mode = LaunchMode.platformDefault}) async => true,
+      descargarApkFn: (url, onProgreso) async => '/ruta/fake.apk',
+      instalarApkFn: (ruta) async => OpenResult(type: ResultType.done),
     );
     await tester.pumpAndSettle();
 
@@ -45,19 +43,20 @@ void main() {
     expect(find.text('Descargar'), findsOneWidget);
   });
 
-  testWidgets('"Más tarde" cierra el dialogo sin abrir la URL',
+  testWidgets('"Más tarde" cierra el dialogo sin descargar nada',
       (tester) async {
-    var seAbrioUrl = false;
+    var seDescargo = false;
     await tester.pumpWidget(buildTestApp(() {}));
     final capturedContext = tester.element(find.text('abrir'));
 
     mostrarDialogoActualizacion(
       capturedContext,
       info,
-      abrirUrl: (url, {mode = LaunchMode.platformDefault}) async {
-        seAbrioUrl = true;
-        return true;
+      descargarApkFn: (url, onProgreso) async {
+        seDescargo = true;
+        return '/ruta/fake.apk';
       },
+      instalarApkFn: (ruta) async => OpenResult(type: ResultType.done),
     );
     await tester.pumpAndSettle();
 
@@ -65,29 +64,96 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Más tarde'), findsNothing);
-    expect(seAbrioUrl, isFalse);
+    expect(seDescargo, isFalse);
   });
 
-  testWidgets('"Descargar" abre la URL del APK y cierra el dialogo',
+  testWidgets(
+      '"Descargar" muestra progreso y, al terminar, instala y cierra el dialogo',
       (tester) async {
-    Uri? urlAbierta;
+    var seInstalo = false;
     await tester.pumpWidget(buildTestApp(() {}));
     final capturedContext = tester.element(find.text('abrir'));
 
     mostrarDialogoActualizacion(
       capturedContext,
       info,
-      abrirUrl: (url, {mode = LaunchMode.platformDefault}) async {
-        urlAbierta = url;
-        return true;
+      descargarApkFn: (url, onProgreso) async {
+        onProgreso(0.5);
+        await Future<void>.delayed(Duration.zero);
+        onProgreso(1.0);
+        return '/ruta/fake.apk';
       },
+      instalarApkFn: (ruta) async {
+        seInstalo = true;
+        expect(ruta, '/ruta/fake.apk');
+        return OpenResult(type: ResultType.done);
+      },
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Descargar'));
+    await tester.pump();
+
+    expect(find.textContaining('Descargando'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+    await tester.pumpAndSettle();
+
+    expect(seInstalo, isTrue);
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  testWidgets('si la descarga falla, muestra error con opcion de reintentar',
+      (tester) async {
+    var intentos = 0;
+    await tester.pumpWidget(buildTestApp(() {}));
+    final capturedContext = tester.element(find.text('abrir'));
+
+    mostrarDialogoActualizacion(
+      capturedContext,
+      info,
+      descargarApkFn: (url, onProgreso) async {
+        intentos++;
+        throw Exception('sin conexion');
+      },
+      instalarApkFn: (ruta) async => OpenResult(type: ResultType.done),
     );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Descargar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Descargar'), findsNothing);
-    expect(urlAbierta, Uri.parse(info.apkUrl));
+    expect(find.textContaining('No se pudo descargar'), findsOneWidget);
+    expect(find.text('Reintentar'), findsOneWidget);
+    expect(find.text('Cerrar'), findsOneWidget);
+    expect(intentos, 1);
+
+    await tester.tap(find.text('Reintentar'));
+    await tester.pumpAndSettle();
+
+    expect(intentos, 2);
+  });
+
+  testWidgets(
+      'si el instalador reporta permiso denegado, explica como habilitarlo',
+      (tester) async {
+    await tester.pumpWidget(buildTestApp(() {}));
+    final capturedContext = tester.element(find.text('abrir'));
+
+    mostrarDialogoActualizacion(
+      capturedContext,
+      info,
+      descargarApkFn: (url, onProgreso) async => '/ruta/fake.apk',
+      instalarApkFn: (ruta) async => OpenResult(
+        type: ResultType.permissionDenied,
+        message: 'Permission denied',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Descargar'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Instalar apps desconocidas'), findsOneWidget);
   });
 }
