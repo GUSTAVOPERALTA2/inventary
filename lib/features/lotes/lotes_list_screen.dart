@@ -33,12 +33,18 @@ class LotesListScreen extends StatelessWidget {
               child: Text('Todavía no hay lotes. Crea el primero con el botón +.'),
             );
           }
-          return ListView.builder(
+          return ReorderableListView.builder(
+            // El agarre (drag_handle) es la unica zona que arrastra; el
+            // resto de la fila sigue respondiendo al tap normal de abrir.
+            buildDefaultDragHandles: false,
             itemCount: lotes.length,
+            onReorderItem: (oldIndex, newIndex) =>
+                _reordenar(repo, lotes, oldIndex, newIndex),
             itemBuilder: (context, index) {
               final lote = lotes[index];
               final seleccionado = loteActivo.value == lote.id;
               return ListTile(
+                key: ValueKey(lote.id),
                 title: Text(lote.nombre),
                 subtitle: Text(_formatFecha(lote.fechaCreacion)),
                 trailing: Row(
@@ -58,6 +64,13 @@ class LotesListScreen extends StatelessWidget {
                       icon: const Icon(Icons.delete_outline),
                       tooltip: 'Eliminar',
                       onPressed: () => _confirmarEliminarLote(context, repo, lote),
+                    ),
+                    ReorderableDragStartListener(
+                      index: index,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(Icons.drag_handle),
+                      ),
                     ),
                   ],
                 ),
@@ -91,6 +104,18 @@ class LotesListScreen extends StatelessWidget {
       '${fecha.day.toString().padLeft(2, '0')}/'
       '${fecha.month.toString().padLeft(2, '0')}/'
       '${fecha.year}';
+
+  Future<void> _reordenar(
+    LotesRepository repo,
+    List<Lote> lotesActuales,
+    int oldIndex,
+    int newIndex,
+  ) {
+    final nuevaLista = List<Lote>.from(lotesActuales);
+    final movido = nuevaLista.removeAt(oldIndex);
+    nuevaLista.insert(newIndex, movido);
+    return repo.reordenarLotes(nuevaLista.map((l) => l.id).toList());
+  }
 
   Future<void> _mostrarDialogoCrearLote(
     BuildContext context,

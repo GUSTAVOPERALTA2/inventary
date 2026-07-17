@@ -191,4 +191,50 @@ void main() {
     ));
     expect(await db.articulosDao.obtenerSiguienteOrden(loteId), 2);
   });
+
+  test(
+      'watchAllLotes respeta el orden manual (descendente), no el orden de '
+      'creacion', () async {
+    // Se insertan en orden A, B, C pero con "orden" ya invertido: A debe
+    // quedar arriba pese a haberse creado primero.
+    final idA = await db.lotesDao
+        .insertLote(LotesCompanion.insert(nombre: 'A', orden: const Value(0)));
+    final idB = await db.lotesDao
+        .insertLote(LotesCompanion.insert(nombre: 'B', orden: const Value(2)));
+    final idC = await db.lotesDao
+        .insertLote(LotesCompanion.insert(nombre: 'C', orden: const Value(1)));
+
+    final lotes = await db.lotesDao.watchAllLotes().first;
+
+    expect(lotes.map((l) => l.id).toList(), [idB, idC, idA]);
+  });
+
+  test('reordenarLotes persiste el nuevo orden', () async {
+    final id1 = await db.lotesDao.insertLote(
+        LotesCompanion.insert(nombre: '1', orden: const Value(2)));
+    final id2 = await db.lotesDao.insertLote(
+        LotesCompanion.insert(nombre: '2', orden: const Value(1)));
+    final id3 = await db.lotesDao.insertLote(
+        LotesCompanion.insert(nombre: '3', orden: const Value(0)));
+
+    // Mover el ultimo (id3, mostrado abajo) hasta arriba de todo.
+    await db.lotesDao.reordenarLotes([id3, id1, id2]);
+
+    final lotes = await db.lotesDao.watchAllLotes().first;
+    expect(lotes.map((l) => l.id).toList(), [id3, id1, id2]);
+  });
+
+  test(
+      'obtenerSiguienteOrden devuelve 0 sin lotes y sigue la secuencia segun '
+      'se van agregando', () async {
+    expect(await db.lotesDao.obtenerSiguienteOrden(), 0);
+
+    await db.lotesDao
+        .insertLote(LotesCompanion.insert(nombre: '1', orden: const Value(0)));
+    expect(await db.lotesDao.obtenerSiguienteOrden(), 1);
+
+    await db.lotesDao
+        .insertLote(LotesCompanion.insert(nombre: '2', orden: const Value(1)));
+    expect(await db.lotesDao.obtenerSiguienteOrden(), 2);
+  });
 }

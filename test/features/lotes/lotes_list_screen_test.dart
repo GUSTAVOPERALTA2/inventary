@@ -233,4 +233,49 @@ void main() {
 
     await _desmontar(tester);
   });
+
+  testWidgets(
+      'arrastrar el icono de mover reordena los lotes y persiste el orden',
+      (tester) async {
+    final id1 = await db.lotesDao
+        .insertLote(LotesCompanion.insert(nombre: 'Lote 1', orden: const Value(2)));
+    final id2 = await db.lotesDao
+        .insertLote(LotesCompanion.insert(nombre: 'Lote 2', orden: const Value(1)));
+    final id3 = await db.lotesDao
+        .insertLote(LotesCompanion.insert(nombre: 'Lote 3', orden: const Value(0)));
+
+    await tester.pumpWidget(_buildTestApp(db));
+    await tester.pumpAndSettle();
+
+    // Orden inicial en pantalla: Lote 1, Lote 2, Lote 3 (de mayor a menor
+    // orden).
+    expect(
+      tester
+          .getTopLeft(find.text('Lote 1'))
+          .dy
+          .compareTo(tester.getTopLeft(find.text('Lote 2')).dy),
+      lessThan(0),
+    );
+
+    // Simular el gesto de arrastre real sobre ReorderableListView es fragil
+    // en tests; se invoca directo el callback onReorderItem que la propia
+    // app conecta, igual que en articulos_list_screen_test.
+    final reorderableListView =
+        tester.widget<ReorderableListView>(find.byType(ReorderableListView));
+    reorderableListView.onReorderItem!(0, 2);
+    // pumpAndSettle() se queda esperando indefinidamente aqui (mismo patron
+    // ya visto en articulos/lotes); un par de pumps acotados alcanzan.
+    await tester.pump();
+    await tester.pump();
+
+    late List<Lote> lotesFinal;
+    await tester.runAsync(() async {
+      lotesFinal = await db.lotesDao.watchAllLotes().first;
+    });
+    final idsFinal = lotesFinal.map((l) => l.id).toList();
+
+    expect(idsFinal, [id2, id3, id1]);
+
+    await _desmontar(tester);
+  });
 }

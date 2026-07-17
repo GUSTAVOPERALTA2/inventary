@@ -22,7 +22,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -41,6 +41,14 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             await m.addColumn(articulos, articulos.orden);
             await customStatement('UPDATE articulos SET orden = id');
+          }
+          // Orden manual de lotes (reordenar arrastrando en la lista de
+          // lotes). Se migran con su propio id: como la lista se muestra
+          // por orden descendente, esto conserva el mismo orden de "mas
+          // reciente primero" que ya tenian antes de este cambio.
+          if (from < 4) {
+            await m.addColumn(lotes, lotes.orden);
+            await customStatement('UPDATE lotes SET orden = id');
           }
         },
       );

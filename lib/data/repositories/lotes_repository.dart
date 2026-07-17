@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart' show Value;
+
 import '../../core/db/daos/lotes_dao.dart';
 import '../../core/db/database.dart';
 
@@ -12,11 +14,20 @@ class LotesRepository {
 
   Future<Lote> getLoteById(int id) => _dao.getLoteById(id);
 
-  Future<int> crearLote(String nombre) =>
-      _dao.insertLote(LotesCompanion.insert(nombre: nombre));
+  Future<int> crearLote(String nombre) async {
+    // Un lote nuevo siempre queda arriba de todo, nunca antes de los que
+    // ya existen.
+    final orden = await _dao.obtenerSiguienteOrden();
+    return _dao.insertLote(
+      LotesCompanion.insert(nombre: nombre, orden: Value(orden)),
+    );
+  }
 
   Future<bool> renombrarLote(Lote lote, String nuevoNombre) =>
       _dao.updateLote(lote.copyWith(nombre: nuevoNombre));
 
   Future<int> eliminarLote(int id) => _dao.deleteLote(id);
+
+  Future<void> reordenarLotes(List<int> idsEnNuevoOrden) =>
+      _dao.reordenarLotes(idsEnNuevoOrden);
 }

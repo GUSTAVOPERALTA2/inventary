@@ -43,8 +43,18 @@ class $LotesTable extends Lotes with TableInfo<$LotesTable, Lote> {
         requiredDuringInsert: false,
         clientDefault: () => DateTime.now(),
       );
+  static const VerificationMeta _ordenMeta = const VerificationMeta('orden');
   @override
-  List<GeneratedColumn> get $columns => [id, nombre, fechaCreacion];
+  late final GeneratedColumn<int> orden = GeneratedColumn<int>(
+    'orden',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, nombre, fechaCreacion, orden];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -77,6 +87,12 @@ class $LotesTable extends Lotes with TableInfo<$LotesTable, Lote> {
         ),
       );
     }
+    if (data.containsKey('orden')) {
+      context.handle(
+        _ordenMeta,
+        orden.isAcceptableOrUnknown(data['orden']!, _ordenMeta),
+      );
+    }
     return context;
   }
 
@@ -98,6 +114,10 @@ class $LotesTable extends Lotes with TableInfo<$LotesTable, Lote> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}fecha_creacion'],
       )!,
+      orden: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}orden'],
+      )!,
     );
   }
 
@@ -111,10 +131,12 @@ class Lote extends DataClass implements Insertable<Lote> {
   final int id;
   final String nombre;
   final DateTime fechaCreacion;
+  final int orden;
   const Lote({
     required this.id,
     required this.nombre,
     required this.fechaCreacion,
+    required this.orden,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -122,6 +144,7 @@ class Lote extends DataClass implements Insertable<Lote> {
     map['id'] = Variable<int>(id);
     map['nombre'] = Variable<String>(nombre);
     map['fecha_creacion'] = Variable<DateTime>(fechaCreacion);
+    map['orden'] = Variable<int>(orden);
     return map;
   }
 
@@ -130,6 +153,7 @@ class Lote extends DataClass implements Insertable<Lote> {
       id: Value(id),
       nombre: Value(nombre),
       fechaCreacion: Value(fechaCreacion),
+      orden: Value(orden),
     );
   }
 
@@ -142,6 +166,7 @@ class Lote extends DataClass implements Insertable<Lote> {
       id: serializer.fromJson<int>(json['id']),
       nombre: serializer.fromJson<String>(json['nombre']),
       fechaCreacion: serializer.fromJson<DateTime>(json['fechaCreacion']),
+      orden: serializer.fromJson<int>(json['orden']),
     );
   }
   @override
@@ -151,13 +176,20 @@ class Lote extends DataClass implements Insertable<Lote> {
       'id': serializer.toJson<int>(id),
       'nombre': serializer.toJson<String>(nombre),
       'fechaCreacion': serializer.toJson<DateTime>(fechaCreacion),
+      'orden': serializer.toJson<int>(orden),
     };
   }
 
-  Lote copyWith({int? id, String? nombre, DateTime? fechaCreacion}) => Lote(
+  Lote copyWith({
+    int? id,
+    String? nombre,
+    DateTime? fechaCreacion,
+    int? orden,
+  }) => Lote(
     id: id ?? this.id,
     nombre: nombre ?? this.nombre,
     fechaCreacion: fechaCreacion ?? this.fechaCreacion,
+    orden: orden ?? this.orden,
   );
   Lote copyWithCompanion(LotesCompanion data) {
     return Lote(
@@ -166,6 +198,7 @@ class Lote extends DataClass implements Insertable<Lote> {
       fechaCreacion: data.fechaCreacion.present
           ? data.fechaCreacion.value
           : this.fechaCreacion,
+      orden: data.orden.present ? data.orden.value : this.orden,
     );
   }
 
@@ -174,45 +207,52 @@ class Lote extends DataClass implements Insertable<Lote> {
     return (StringBuffer('Lote(')
           ..write('id: $id, ')
           ..write('nombre: $nombre, ')
-          ..write('fechaCreacion: $fechaCreacion')
+          ..write('fechaCreacion: $fechaCreacion, ')
+          ..write('orden: $orden')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, nombre, fechaCreacion);
+  int get hashCode => Object.hash(id, nombre, fechaCreacion, orden);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Lote &&
           other.id == this.id &&
           other.nombre == this.nombre &&
-          other.fechaCreacion == this.fechaCreacion);
+          other.fechaCreacion == this.fechaCreacion &&
+          other.orden == this.orden);
 }
 
 class LotesCompanion extends UpdateCompanion<Lote> {
   final Value<int> id;
   final Value<String> nombre;
   final Value<DateTime> fechaCreacion;
+  final Value<int> orden;
   const LotesCompanion({
     this.id = const Value.absent(),
     this.nombre = const Value.absent(),
     this.fechaCreacion = const Value.absent(),
+    this.orden = const Value.absent(),
   });
   LotesCompanion.insert({
     this.id = const Value.absent(),
     required String nombre,
     this.fechaCreacion = const Value.absent(),
+    this.orden = const Value.absent(),
   }) : nombre = Value(nombre);
   static Insertable<Lote> custom({
     Expression<int>? id,
     Expression<String>? nombre,
     Expression<DateTime>? fechaCreacion,
+    Expression<int>? orden,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (nombre != null) 'nombre': nombre,
       if (fechaCreacion != null) 'fecha_creacion': fechaCreacion,
+      if (orden != null) 'orden': orden,
     });
   }
 
@@ -220,11 +260,13 @@ class LotesCompanion extends UpdateCompanion<Lote> {
     Value<int>? id,
     Value<String>? nombre,
     Value<DateTime>? fechaCreacion,
+    Value<int>? orden,
   }) {
     return LotesCompanion(
       id: id ?? this.id,
       nombre: nombre ?? this.nombre,
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
+      orden: orden ?? this.orden,
     );
   }
 
@@ -240,6 +282,9 @@ class LotesCompanion extends UpdateCompanion<Lote> {
     if (fechaCreacion.present) {
       map['fecha_creacion'] = Variable<DateTime>(fechaCreacion.value);
     }
+    if (orden.present) {
+      map['orden'] = Variable<int>(orden.value);
+    }
     return map;
   }
 
@@ -248,7 +293,8 @@ class LotesCompanion extends UpdateCompanion<Lote> {
     return (StringBuffer('LotesCompanion(')
           ..write('id: $id, ')
           ..write('nombre: $nombre, ')
-          ..write('fechaCreacion: $fechaCreacion')
+          ..write('fechaCreacion: $fechaCreacion, ')
+          ..write('orden: $orden')
           ..write(')'))
         .toString();
   }
@@ -1347,12 +1393,14 @@ typedef $$LotesTableCreateCompanionBuilder =
       Value<int> id,
       required String nombre,
       Value<DateTime> fechaCreacion,
+      Value<int> orden,
     });
 typedef $$LotesTableUpdateCompanionBuilder =
     LotesCompanion Function({
       Value<int> id,
       Value<String> nombre,
       Value<DateTime> fechaCreacion,
+      Value<int> orden,
     });
 
 final class $$LotesTableReferences
@@ -1398,6 +1446,11 @@ class $$LotesTableFilterComposer extends Composer<_$AppDatabase, $LotesTable> {
 
   ColumnFilters<DateTime> get fechaCreacion => $composableBuilder(
     column: $table.fechaCreacion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get orden => $composableBuilder(
+    column: $table.orden,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1450,6 +1503,11 @@ class $$LotesTableOrderingComposer
     column: $table.fechaCreacion,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get orden => $composableBuilder(
+    column: $table.orden,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$LotesTableAnnotationComposer
@@ -1471,6 +1529,9 @@ class $$LotesTableAnnotationComposer
     column: $table.fechaCreacion,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get orden =>
+      $composableBuilder(column: $table.orden, builder: (column) => column);
 
   Expression<T> articulosRefs<T extends Object>(
     Expression<T> Function($$ArticulosTableAnnotationComposer a) f,
@@ -1529,20 +1590,24 @@ class $$LotesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> nombre = const Value.absent(),
                 Value<DateTime> fechaCreacion = const Value.absent(),
+                Value<int> orden = const Value.absent(),
               }) => LotesCompanion(
                 id: id,
                 nombre: nombre,
                 fechaCreacion: fechaCreacion,
+                orden: orden,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String nombre,
                 Value<DateTime> fechaCreacion = const Value.absent(),
+                Value<int> orden = const Value.absent(),
               }) => LotesCompanion.insert(
                 id: id,
                 nombre: nombre,
                 fechaCreacion: fechaCreacion,
+                orden: orden,
               ),
           withReferenceMapper: (p0) => p0
               .map(
