@@ -17,6 +17,7 @@ Articulo _articulo({
     precioUnitario: precioUnitario,
     customValues: const {},
     createdAt: DateTime(2026, 1, 1),
+    orden: id,
   );
 }
 

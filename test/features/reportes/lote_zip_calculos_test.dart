@@ -22,6 +22,7 @@ Articulo _articulo({
     fotoPath: fotoPath,
     customValues: customValues,
     createdAt: DateTime(2026, 1, 1),
+    orden: id,
   );
 }
 

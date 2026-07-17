@@ -19,6 +19,7 @@ Articulo _articulo({required int id, String? fotoPath}) {
     fotoPath: fotoPath,
     customValues: const {},
     createdAt: DateTime(2026, 1, 1),
+    orden: id,
   );
 }
 

@@ -217,4 +217,73 @@ void main() {
 
     await _desmontar(tester);
   });
+
+  testWidgets(
+      'arrastrar el icono de mover reordena los artículos y persiste el orden',
+      (tester) async {
+    _agrandarViewport(tester);
+    final id1 = await db.articulosDao.insertArticulo(ArticulosCompanion.insert(
+      loteId: loteId,
+      noSerie: 'SN-A',
+      descripcion: 'Primero',
+      cantidad: 1,
+      customValues: const {},
+      orden: const Value(0),
+    ));
+    final id2 = await db.articulosDao.insertArticulo(ArticulosCompanion.insert(
+      loteId: loteId,
+      noSerie: 'SN-B',
+      descripcion: 'Segundo',
+      cantidad: 1,
+      customValues: const {},
+      orden: const Value(1),
+    ));
+    final id3 = await db.articulosDao.insertArticulo(ArticulosCompanion.insert(
+      loteId: loteId,
+      noSerie: 'SN-C',
+      descripcion: 'Tercero',
+      cantidad: 1,
+      customValues: const {},
+      orden: const Value(2),
+    ));
+
+    await tester.pumpWidget(_buildTestApp(db, loteId));
+    await tester.pumpAndSettle();
+
+    // Confirma el orden inicial en pantalla (de arriba a abajo).
+    expect(
+      tester
+          .getTopLeft(find.text('SN-A'))
+          .dy
+          .compareTo(tester.getTopLeft(find.text('SN-B')).dy),
+      lessThan(0),
+    );
+
+    // Simular el gesto de arrastre real sobre ReorderableListView es frágil
+    // en tests (usa un reconocedor de multi-drag propio, no un drag comun);
+    // en vez de eso, se invoca directo el callback onReorderItem que la
+    // propia app conecta — se confia en que el widget de Flutter dispara
+    // ese callback correctamente, y se prueba la logica que escribimos
+    // nosotros (_reordenar).
+    final reorderableListView =
+        tester.widget<ReorderableListView>(find.byType(ReorderableListView));
+    reorderableListView.onReorderItem!(0, 2);
+    // pumpAndSettle() se queda esperando indefinidamente aqui (mismo patron
+    // ya visto al reordenar/eliminar lotes); un par de pumps acotados
+    // alcanzan para reflejar el rebuild tras el reordenamiento.
+    await tester.pump();
+    await tester.pump();
+
+    // Suscribirse recien aqui a un watch() nuevo, tras el reordenamiento,
+    // tampoco resuelve sin runAsync (mismo patron que en lotes_list_screen_test).
+    late List<Articulo> articulosFinal;
+    await tester.runAsync(() async {
+      articulosFinal = await db.articulosDao.watchArticulosByLote(loteId).first;
+    });
+    final idsFinal = articulosFinal.map((a) => a.id).toList();
+
+    expect(idsFinal, [id2, id3, id1]);
+
+    await _desmontar(tester);
+  });
 }

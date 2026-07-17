@@ -374,6 +374,16 @@ class $ArticulosTable extends Articulos
     requiredDuringInsert: false,
     clientDefault: () => DateTime.now(),
   );
+  static const VerificationMeta _ordenMeta = const VerificationMeta('orden');
+  @override
+  late final GeneratedColumn<int> orden = GeneratedColumn<int>(
+    'orden',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -386,6 +396,7 @@ class $ArticulosTable extends Articulos
     precioUnitario,
     customValues,
     createdAt,
+    orden,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -467,6 +478,12 @@ class $ArticulosTable extends Articulos
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('orden')) {
+      context.handle(
+        _ordenMeta,
+        orden.isAcceptableOrUnknown(data['orden']!, _ordenMeta),
+      );
+    }
     return context;
   }
 
@@ -518,6 +535,10 @@ class $ArticulosTable extends Articulos
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      orden: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}orden'],
+      )!,
     );
   }
 
@@ -541,6 +562,7 @@ class Articulo extends DataClass implements Insertable<Articulo> {
   final double precioUnitario;
   final Map<String, dynamic> customValues;
   final DateTime createdAt;
+  final int orden;
   const Articulo({
     required this.id,
     required this.loteId,
@@ -552,6 +574,7 @@ class Articulo extends DataClass implements Insertable<Articulo> {
     required this.precioUnitario,
     required this.customValues,
     required this.createdAt,
+    required this.orden,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -572,6 +595,7 @@ class Articulo extends DataClass implements Insertable<Articulo> {
       );
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['orden'] = Variable<int>(orden);
     return map;
   }
 
@@ -589,6 +613,7 @@ class Articulo extends DataClass implements Insertable<Articulo> {
       precioUnitario: Value(precioUnitario),
       customValues: Value(customValues),
       createdAt: Value(createdAt),
+      orden: Value(orden),
     );
   }
 
@@ -610,6 +635,7 @@ class Articulo extends DataClass implements Insertable<Articulo> {
         json['customValues'],
       ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      orden: serializer.fromJson<int>(json['orden']),
     );
   }
   @override
@@ -626,6 +652,7 @@ class Articulo extends DataClass implements Insertable<Articulo> {
       'precioUnitario': serializer.toJson<double>(precioUnitario),
       'customValues': serializer.toJson<Map<String, dynamic>>(customValues),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'orden': serializer.toJson<int>(orden),
     };
   }
 
@@ -640,6 +667,7 @@ class Articulo extends DataClass implements Insertable<Articulo> {
     double? precioUnitario,
     Map<String, dynamic>? customValues,
     DateTime? createdAt,
+    int? orden,
   }) => Articulo(
     id: id ?? this.id,
     loteId: loteId ?? this.loteId,
@@ -651,6 +679,7 @@ class Articulo extends DataClass implements Insertable<Articulo> {
     precioUnitario: precioUnitario ?? this.precioUnitario,
     customValues: customValues ?? this.customValues,
     createdAt: createdAt ?? this.createdAt,
+    orden: orden ?? this.orden,
   );
   Articulo copyWithCompanion(ArticulosCompanion data) {
     return Articulo(
@@ -672,6 +701,7 @@ class Articulo extends DataClass implements Insertable<Articulo> {
           ? data.customValues.value
           : this.customValues,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      orden: data.orden.present ? data.orden.value : this.orden,
     );
   }
 
@@ -687,7 +717,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
           ..write('unidadMedida: $unidadMedida, ')
           ..write('precioUnitario: $precioUnitario, ')
           ..write('customValues: $customValues, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('orden: $orden')
           ..write(')'))
         .toString();
   }
@@ -704,6 +735,7 @@ class Articulo extends DataClass implements Insertable<Articulo> {
     precioUnitario,
     customValues,
     createdAt,
+    orden,
   );
   @override
   bool operator ==(Object other) =>
@@ -718,7 +750,8 @@ class Articulo extends DataClass implements Insertable<Articulo> {
           other.unidadMedida == this.unidadMedida &&
           other.precioUnitario == this.precioUnitario &&
           other.customValues == this.customValues &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.orden == this.orden);
 }
 
 class ArticulosCompanion extends UpdateCompanion<Articulo> {
@@ -732,6 +765,7 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
   final Value<double> precioUnitario;
   final Value<Map<String, dynamic>> customValues;
   final Value<DateTime> createdAt;
+  final Value<int> orden;
   const ArticulosCompanion({
     this.id = const Value.absent(),
     this.loteId = const Value.absent(),
@@ -743,6 +777,7 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
     this.precioUnitario = const Value.absent(),
     this.customValues = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.orden = const Value.absent(),
   });
   ArticulosCompanion.insert({
     this.id = const Value.absent(),
@@ -755,6 +790,7 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
     this.precioUnitario = const Value.absent(),
     required Map<String, dynamic> customValues,
     this.createdAt = const Value.absent(),
+    this.orden = const Value.absent(),
   }) : loteId = Value(loteId),
        noSerie = Value(noSerie),
        descripcion = Value(descripcion),
@@ -771,6 +807,7 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
     Expression<double>? precioUnitario,
     Expression<String>? customValues,
     Expression<DateTime>? createdAt,
+    Expression<int>? orden,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -783,6 +820,7 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
       if (precioUnitario != null) 'precio_unitario': precioUnitario,
       if (customValues != null) 'custom_values': customValues,
       if (createdAt != null) 'created_at': createdAt,
+      if (orden != null) 'orden': orden,
     });
   }
 
@@ -797,6 +835,7 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
     Value<double>? precioUnitario,
     Value<Map<String, dynamic>>? customValues,
     Value<DateTime>? createdAt,
+    Value<int>? orden,
   }) {
     return ArticulosCompanion(
       id: id ?? this.id,
@@ -809,6 +848,7 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
       precioUnitario: precioUnitario ?? this.precioUnitario,
       customValues: customValues ?? this.customValues,
       createdAt: createdAt ?? this.createdAt,
+      orden: orden ?? this.orden,
     );
   }
 
@@ -847,6 +887,9 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (orden.present) {
+      map['orden'] = Variable<int>(orden.value);
+    }
     return map;
   }
 
@@ -862,7 +905,8 @@ class ArticulosCompanion extends UpdateCompanion<Articulo> {
           ..write('unidadMedida: $unidadMedida, ')
           ..write('precioUnitario: $precioUnitario, ')
           ..write('customValues: $customValues, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('orden: $orden')
           ..write(')'))
         .toString();
   }
@@ -1558,6 +1602,7 @@ typedef $$ArticulosTableCreateCompanionBuilder =
       Value<double> precioUnitario,
       required Map<String, dynamic> customValues,
       Value<DateTime> createdAt,
+      Value<int> orden,
     });
 typedef $$ArticulosTableUpdateCompanionBuilder =
     ArticulosCompanion Function({
@@ -1571,6 +1616,7 @@ typedef $$ArticulosTableUpdateCompanionBuilder =
       Value<double> precioUnitario,
       Value<Map<String, dynamic>> customValues,
       Value<DateTime> createdAt,
+      Value<int> orden,
     });
 
 final class $$ArticulosTableReferences
@@ -1654,6 +1700,11 @@ class $$ArticulosTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get orden => $composableBuilder(
+    column: $table.orden,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$LotesTableFilterComposer get loteId {
     final $$LotesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -1732,6 +1783,11 @@ class $$ArticulosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get orden => $composableBuilder(
+    column: $table.orden,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$LotesTableOrderingComposer get loteId {
     final $$LotesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -1801,6 +1857,9 @@ class $$ArticulosTableAnnotationComposer
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
+  GeneratedColumn<int> get orden =>
+      $composableBuilder(column: $table.orden, builder: (column) => column);
+
   $$LotesTableAnnotationComposer get loteId {
     final $$LotesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -1863,6 +1922,7 @@ class $$ArticulosTableTableManager
                 Value<double> precioUnitario = const Value.absent(),
                 Value<Map<String, dynamic>> customValues = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int> orden = const Value.absent(),
               }) => ArticulosCompanion(
                 id: id,
                 loteId: loteId,
@@ -1874,6 +1934,7 @@ class $$ArticulosTableTableManager
                 precioUnitario: precioUnitario,
                 customValues: customValues,
                 createdAt: createdAt,
+                orden: orden,
               ),
           createCompanionCallback:
               ({
@@ -1887,6 +1948,7 @@ class $$ArticulosTableTableManager
                 Value<double> precioUnitario = const Value.absent(),
                 required Map<String, dynamic> customValues,
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int> orden = const Value.absent(),
               }) => ArticulosCompanion.insert(
                 id: id,
                 loteId: loteId,
@@ -1898,6 +1960,7 @@ class $$ArticulosTableTableManager
                 precioUnitario: precioUnitario,
                 customValues: customValues,
                 createdAt: createdAt,
+                orden: orden,
               ),
           withReferenceMapper: (p0) => p0
               .map(

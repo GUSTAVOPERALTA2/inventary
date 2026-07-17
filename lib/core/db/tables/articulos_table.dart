@@ -18,4 +18,9 @@ class Articulos extends Table {
   TextColumn get customValues => text().map(const MapJsonConverter())();
   DateTimeColumn get createdAt =>
       dateTime().clientDefault(() => DateTime.now())();
+  // Orden manual dentro del lote (arrastrar para reordenar en la lista);
+  // determina tambien el orden en el PDF del acta y en el CSV del ZIP.
+  // Los articulos existentes se migran usando su id (mismo orden que ya
+  // tenian); los nuevos se crean al final (ver ArticulosRepository.crearArticulo).
+  IntColumn get orden => integer().withDefault(const Constant(0))();
 }

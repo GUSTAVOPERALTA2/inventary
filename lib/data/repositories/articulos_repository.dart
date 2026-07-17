@@ -22,17 +22,22 @@ class ArticulosRepository {
     required double precioUnitario,
     String? fotoPath,
     Map<String, dynamic> customValues = const {},
-  }) =>
-      _dao.insertArticulo(ArticulosCompanion.insert(
-        loteId: loteId,
-        noSerie: noSerie,
-        descripcion: descripcion,
-        cantidad: cantidad,
-        unidadMedida: Value(unidadMedida),
-        precioUnitario: Value(precioUnitario),
-        fotoPath: Value(fotoPath),
-        customValues: customValues,
-      ));
+  }) async {
+    // Los articulos nuevos siempre se agregan al final del orden manual
+    // del lote, nunca antes de los que ya existen.
+    final orden = await _dao.obtenerSiguienteOrden(loteId);
+    return _dao.insertArticulo(ArticulosCompanion.insert(
+      loteId: loteId,
+      noSerie: noSerie,
+      descripcion: descripcion,
+      cantidad: cantidad,
+      unidadMedida: Value(unidadMedida),
+      precioUnitario: Value(precioUnitario),
+      fotoPath: Value(fotoPath),
+      customValues: customValues,
+      orden: Value(orden),
+    ));
+  }
 
   // nullToAbsent=false: si fotoPath queda en null (se quitó la foto), debe
   // escribirse como NULL en la fila, no quedar "ausente" (lo que dejaría el
@@ -44,4 +49,7 @@ class ArticulosRepository {
 
   Future<int> eliminarArticulosDelLote(int loteId) =>
       _dao.deleteArticulosByLote(loteId);
+
+  Future<void> reordenarArticulos(List<int> idsEnNuevoOrden) =>
+      _dao.reordenarArticulos(idsEnNuevoOrden);
 }

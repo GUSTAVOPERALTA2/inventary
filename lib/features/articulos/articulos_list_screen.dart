@@ -80,12 +80,20 @@ class ArticulosListScreen extends StatelessWidget {
               ),
             );
           }
-          return ListView.builder(
+          return ReorderableListView.builder(
+            // El agarre (drag_handle) es la unica zona que arrastra; el
+            // resto de la fila sigue respondiendo al tap normal de editar.
+            buildDefaultDragHandles: false,
             itemCount: articulos.length,
+            // onReorderItem (a diferencia de onReorder, ya deprecado) entrega
+            // newIndex ya ajustado para el hueco que deja el item removido.
+            onReorderItem: (oldIndex, newIndex) =>
+                _reordenar(repo, articulos, oldIndex, newIndex),
             itemBuilder: (context, index) {
               final articulo = articulos[index];
               final fotoPath = articulo.fotoPath;
               return ListTile(
+                key: ValueKey(articulo.id),
                 leading: fotoPath == null
                     ? const CircleAvatar(child: Icon(Icons.inventory_2_outlined))
                     : CircleAvatar(backgroundImage: FileImage(File(fotoPath))),
@@ -97,10 +105,23 @@ class ArticulosListScreen extends StatelessWidget {
                   '\$${formatCantidad(articulo.precioUnitario)} c/u',
                 ),
                 onTap: () => _abrirFormulario(context, articulo: articulo),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Eliminar',
-                  onPressed: () => _confirmarEliminar(context, repo, articulo),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Eliminar',
+                      onPressed: () =>
+                          _confirmarEliminar(context, repo, articulo),
+                    ),
+                    ReorderableDragStartListener(
+                      index: index,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(Icons.drag_handle),
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
@@ -113,6 +134,18 @@ class ArticulosListScreen extends StatelessWidget {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  Future<void> _reordenar(
+    ArticulosRepository repo,
+    List<Articulo> articulosActuales,
+    int oldIndex,
+    int newIndex,
+  ) {
+    final nuevaLista = List<Articulo>.from(articulosActuales);
+    final movido = nuevaLista.removeAt(oldIndex);
+    nuevaLista.insert(newIndex, movido);
+    return repo.reordenarArticulos(nuevaLista.map((a) => a.id).toList());
   }
 
   Future<void> _abrirFormulario(BuildContext context, {Articulo? articulo}) {
